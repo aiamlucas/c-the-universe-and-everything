@@ -22,4 +22,18 @@ Contributions are welcome.
 
 ---
 
+## Contributing
+
+The goal of this project is to serve as a collaborative notebook for low-level programming shared knowledge.
+
+To contribute:
+
+- Fork the repository
+- Create your own branches to write and organize personal notes or experiments
+- Keep `main` focused on shared essentials and broadly useful content
+
+Contributions, additions and refactorings are welcome.
+
+---
+
 License: [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html)
