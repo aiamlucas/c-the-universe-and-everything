@@ -24,7 +24,7 @@ Contributions are welcome.
 
 ## Contributing
 
-The goal of this project is to serve as a collaborative notebook for low-level programming shared knowledge.
+The goal of this project is to serve as a collaborative notebook to collect and share knowledge on C and shell programming.
 
 To contribute:
 
