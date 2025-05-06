@@ -1,7 +1,7 @@
 # Pointers in C 
 ---
 
-# Part 1: Introduction and Basics
+# Introduction and Basics
 
 ## What is a Pointer?
 
@@ -163,7 +163,7 @@ printf("%d\n", *(int *)vptr);
 - Void pointers are generic but must be cast.
 
 
-# Part 2: Pointers and Arrays
+# Pointers and Arrays
 
 ## Relationship Between Pointers and Arrays
 
@@ -347,7 +347,7 @@ You can traverse the matrix using pointer arithmetic.
 - Pointer to array and multidimensional array pointers offer more control over memory.
 
 
-# Part 3: Pointers and Strings
+# Pointers and Strings
 
 ## Strings in C
 
@@ -477,7 +477,7 @@ while (*s) {
 - Pointer-based string operations are efficient and flexible.
 - Functions like `strlen`, `strcpy`, and `strcmp` work with string pointers.
 
-# Part 4: Functions and Pointers
+# Functions and Pointers
 
 ## Passing by Value vs Passing by Reference
 
@@ -643,7 +643,7 @@ int main() {
 - Avoid returning addresses of local variables.
 - Function pointers enable flexible function selection and callbacks.
 
-# Part 5: Dynamic Memory Allocation
+# Dynamic Memory Allocation
 
 ## Introduction
 
@@ -779,7 +779,7 @@ p = NULL; //  safe
 - Prefer `calloc` when zero-initialization is needed.
 
 
-# Part 6: Other Concepts and Best Practices
+# Other Concepts and Best Practices
 
 ## Pointers to Pointers
 
