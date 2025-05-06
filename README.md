@@ -2,8 +2,6 @@
 
 A collaborative collection of notes on C programming, shell and other low-level orbit objects in the programming galaxy.
 
-Contributions are welcome.
-
 ---
 
 <!-- INDEX-START -->
