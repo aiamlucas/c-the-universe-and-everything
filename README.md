@@ -6,9 +6,6 @@ Contributions are welcome.
 
 ---
 
-License: [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html)
-
-
 <!-- INDEX-START -->
 
 ### C
@@ -22,3 +19,7 @@ License: [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html)
 - [Markdown Index Generator](shell/markdown-index-generator/markdown-index-generator.md)
 
 <!-- INDEX-END -->
+
+---
+
+License: [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html)
