@@ -372,7 +372,7 @@ int main() {
     printf("%d\n", arr[2]);
 
     // Invalid access
-    printf("%d\n", arr[5]); // ⚠️ Undefined behavior
+    printf("%d\n", arr[5]); // Undefined behavior
     return 0;
 }
 ```
