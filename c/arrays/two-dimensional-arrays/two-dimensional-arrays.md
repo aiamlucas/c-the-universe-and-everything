@@ -220,9 +220,7 @@ int main() {
 
 ## Operations and Applications
 
-### Introduction
-
-Two-dimensional arrays can be used to perform various operations such as traversing, searching, sorting, arithmetic operations, etc. This chapter covers some of the most common operations and their applications.
+Two-dimensional arrays can be used to perform various operations such as traversing, searching, sorting, arithmetic operations, etc.
 
 ---
 
@@ -414,9 +412,7 @@ int main() {
 
 ## Extra: Drawing Basic Graphs for Games in Terminal
 
-### Introduction
-
-By using characters like ``` - ```, ``` | ```, ``` / ```, ``` \\ ```, ``` + ```, ``` * ```, etc., you can draw basic game boards, graphs, and shapes directly in the terminal. This is useful for creating text-based games or visualizing data without relying on graphical libraries.
+By using characters like ``` - ```, ``` | ```, ``` / ```, ``` \\ ```, ``` + ```, ``` * ```, etc, you can draw basic game boards, graphs, and shapes directly in the terminal. This is useful for creating text-based games or visualizing data without relying on graphical libraries.
 
 ---
 
