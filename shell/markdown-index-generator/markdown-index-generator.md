@@ -7,7 +7,7 @@ This script scans the entire `c-the-universe-and-everything` repository for `.md
 1. Make the script executable:
 
 ```
-chmod +x shell/markdown-index-generator/generate-index.sh
+chmod +x generate-index.sh
 ```
 
 2. Run it:
