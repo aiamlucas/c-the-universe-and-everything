@@ -59,7 +59,7 @@ Address    Value
 
 ### Declaration
 
-To declare an array in C, you specify the data type, name of the array, and its size.
+To declare an array in C, you specify the data type, name of the array and its size.
 
 ```int scores[5]; // Declares an array of integers with 5 elements.```
 
@@ -356,8 +356,50 @@ int main() {
 }
 ```
 
+## Extra Notes/Examples
+
+### Out-of-Bounds Access
+
+Accessing an array element outside its valid index range leads to **undefined behavior**, which may result in crashes or unpredictable output.
+
+```
+#include <stdio.h>
+
+int main() {
+    int arr[3] = {1, 2, 3};
+
+    // Valid access
+    printf("%d\n", arr[2]);
+
+    // Invalid access
+    printf("%d\n", arr[5]); // ⚠️ Undefined behavior
+    return 0;
+}
+```
+
+Always ensure that your loop or access logic respects the bounds: from `0` to `size - 1`.
+
+---
+
+### Constant Arrays
+
+Using `const` makes an array read-only, preventing accidental modification of its values.
+
+```
+#include <stdio.h>
+
+int main() {
+    const int data[3] = {10, 20, 30};
+
+    // data[0] = 100; // Compile-time error
+
+    printf("First: %d\n", data[0]);
+    return 0;
+}
+```
+
 ## Summary
 
 - Arrays store sequences of values in contiguous memory.
 - Useful for data storage, access, and manipulation.
-- Arrays are foundational for more complex structures like matrices, strings, and graphs.
+- Arrays are foundational for more complex structures like matrices, strings and graphs.
