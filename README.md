@@ -8,9 +8,9 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 ### C
 
+- [Pointers](c/pointers/pointers.md)
 - [Arrays](c/arrays/arrays.md)
 - [Two Dimensional Arrays](c/arrays/two-dimensional-arrays/two-dimensional-arrays.md)
-- [Pointers](c/pointers/pointers.md)
 - [Structs](c/structs/structs.md)
 
 ### Shell
