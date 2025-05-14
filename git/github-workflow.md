@@ -62,7 +62,7 @@ Before working on the `dev` branch, make sure you have the latest updates from `
 
 ```
 git switch master
-git pull github master      # Get the latest clean version
+git pull                    # Get the latest clean version
 git switch dev
 git merge master            # Merge into your local dev branch
 ```
@@ -73,7 +73,7 @@ Then continue working:
 # make changes
 git add ft_isascii.c        # Stage only the file(s) you modified
 git commit -m "feat: implement ft_isascii"
-git push github dev
+git push origin dev
 ```
 
 ### At 42
