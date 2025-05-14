@@ -10,18 +10,17 @@ generate_index() {
 	echo "$START_MARKER"
 	echo ""
 
-	# Loop through top-level directories (c, shell, etc.)
-	for dir in c shell; do
+	# Loop through all top-level directories dynamically
+	for dir in */; do
+		dir="${dir%/}" # Remove trailing slash
 		if [ -d "$dir" ]; then
 			header=$(echo "$dir" | sed 's/\b\(.\)/\u\1/g') # Capitalize
 			echo "### $header"
 			echo ""
-
 			find "$dir" -name "*.md" | while read -r file; do
 				title=$(basename "$file" .md | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
 				echo "- [$title]($file)"
 			done
-
 			echo ""
 		fi
 	done
