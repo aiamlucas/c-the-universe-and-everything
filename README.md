@@ -13,6 +13,10 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 - [Two Dimensional Arrays](c/arrays/two-dimensional-arrays/two-dimensional-arrays.md)
 - [Structs](c/structs/structs.md)
 
+### Git
+
+- [Github Workflow](git/github-workflow.md)
+
 ### Shell
 
 - [Markdown Index Generator](shell/markdown-index-generator/markdown-index-generator.md)
