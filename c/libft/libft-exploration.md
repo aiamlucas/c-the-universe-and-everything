@@ -7,7 +7,9 @@ Libft is the first satellite in the 42 galaxy.
 It orbits the raw memory sector from `0x00` to `0xFF`, traversing RAM, entering registers, moving through `rdx`, `rsi`, `rdi` >> one byte at a time.
 
 100% handcraft.  
-↳ or better: 100% fingercraft → launched into the universe via **fingertips**, as Vilém Flusser might have called it, echoing *Ins Universum der technischen Bilder*, Göttingen, 1985.  
+↳ or better: 100% fingercraft → launched into the universe via **fingertips**, as Vilém Flusser might have said! 
+
+*Ins Universum der technischen Bilder*, Göttingen, 1985.  
 → [English edition](https://www.goodreads.com/book/show/9785668-into-the-universe-of-technical-images)
 
 Brought into being at t = 0, via Makefile.
