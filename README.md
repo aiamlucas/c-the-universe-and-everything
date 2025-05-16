@@ -8,6 +8,7 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 ### C
 
+- [Libft Exploration](c/libft/libft-exploration.md)
 - [Pointers](c/pointers/pointers.md)
 - [Arrays](c/arrays/arrays.md)
 - [Two Dimensional Arrays](c/arrays/two-dimensional-arrays/two-dimensional-arrays.md)
