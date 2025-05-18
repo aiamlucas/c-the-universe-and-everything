@@ -24,6 +24,7 @@ Brought into being at t = 0, via Makefile.
 - [memcmp(()](#memcmp)
 - [strnstr()](#strnstr)
 - [strlcat()](#strlcat)
+- [strdup()](#strdup)
 
 # memcpy()
 
@@ -464,4 +465,90 @@ size_t result = strlcat(buffer, "is the place", 16);
 
 // buffer now contains: "space is the pl"
 // result is 19 — full length it tried to create
+```
+
+# strdup()
+
+## Overview
+
+```strdup()``` creates a **new copy of a string**, allocating just enough memory for it (including the null terminator).
+
+It’s like saying:  
+> “Give me a fresh copy of this string, living in its own space.”
+
+You give it a ```const char *s``` and it returns a ```char *``` that points to a heap-allocated duplicate.
+
+---
+
+## How to Visualize It
+
+Imagine this original string in memory:
+
+```
+Original:  [s] [p] [a] [c] [e] [ ] [i] [s] [\0]  
+Pointer:    ↑
+```
+
+When you call ```strdup()```, it allocates space for a new copy:
+
+```
+Duplicate: [s] [p] [a] [c] [e] [ ] [i] [s] [\0]  
+Pointer:                           ↑
+```
+
+You now have two separate pointers, pointing to the same content but living in different memory.
+
+If you modify one, the other stays untouched.
+
+---
+
+## Key Concepts
+
+- Allocates memory using ```malloc()```
+- Copies the content byte-by-byte, including the ```'\0'``` at the end
+- Returns ```NULL``` if memory allocation fails
+- You are responsible for freeing the result with ```free()```
+
+---
+
+## Analogy
+
+Think of a zine on the table.
+
+- The original is one copy.
+- You go to a photocopier and duplicate it.
+- Now you can scribble on your copy, fold it or hand it to someone and the original remains untouched.
+
+That’s what ```strdup()``` gives you: a fresh copy to do whatever you want with.
+
+---
+
+## When To Use It?
+
+- You want to modify a string without touching the original
+- You need a copy that survives outside the scope of a function or stack frame
+- You’re building new structures that own their data (e.g., tokens, arguments, log lines)
+- You need something that will outlive a temporary buffer
+
+```char *strdup(const char *s);```
+
+---
+
+## Downsides of strdup()
+
+- Uses ```malloc()```. So you must ```free()``` the result
+- Fails silently if memory is tight, so always check for ```NULL```
+- Doesn’t let you copy partial strings (use ```strndup()``` for that)
+
+---
+
+## Example
+
+```
+char *original = "launch";
+char *copy = strdup(original);
+
+printf("%s\n", copy);  // prints: launch
+
+free(copy); // don't forget to clean up
 ```
