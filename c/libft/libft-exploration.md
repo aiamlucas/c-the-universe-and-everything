@@ -19,11 +19,97 @@ Brought into being at t = 0, via Makefile.
 ```
 
 ## Table of Contents
-
+- [memcpy()](#memcpy)
 - [memchr()](#memchr)
 - [memcmp(()](#memcmp)
 - [strnstr()](#strnstr)
-- [memchr()](#memchr)
+- [strlcat()](#strlcat)
+
+# memcpy()
+
+## Overview
+
+```memcpy()``` is a fundamental C function used to **copy raw bytes** from one memory location to another.
+
+It doesn't care about strings, null terminators, or data types. Only the ***bytes*** matter.  
+It copies exactly ```n``` bytes from ```src``` to ```dest```.
+
+---
+
+## How to Visualize It
+
+Picture two memory rows, side by side. You're moving values from the top row into the bottom one:
+
+Before ```memcpy()```:
+
+src:   [A] [B] [C] [D] [E]  
+dest:  [x] [x] [x] [x] [x]
+
+You call:  
+```memcpy(dest, src, 3)```
+
+Afterward:
+
+src:   [A] [B] [C] [D] [E]  
+dest:  [A] [B] [C] [x] [x]
+
+Only the first 3 bytes were copied. No interpretation — just raw byte movement.
+
+---
+
+## Key Concepts
+
+- ```memcpy(dest, src, n)``` copies ```n``` bytes from ```src``` to ```dest```.
+- You must make sure:
+  - ```dest``` has enough space
+  - The source and destination **do not overlap**
+- It returns ```dest``` (the pointer to the destination).
+- It is faster than most loops and often implemented in assembly or supported by hardware acceleration.
+
+---
+
+## Analogy
+
+Imagine copying books from one shelf to another, one by one:
+
+- ```src``` is the source shelf.
+- ```dest``` is the destination shelf.
+- ```n``` is the number of books to move.
+
+You move them exactly in order.  
+You don’t read them, interpret them or check the titles, you just move the physical items as it is.
+
+---
+
+## When To Use It?
+
+- Duplicating binary data.
+- Copying arrays, structs, or raw memory blocks.
+- Filling packet buffers, framebuffers or file chunks.
+- Any situation where precision and speed matter more than interpretation.
+
+```void *memcpy(void *dest, const void *src, size_t n);```
+
+---
+
+## Downsides of memcpy()
+
+- **Dangerous if misused**: copying past buffer bounds causes undefined behavior.
+- If ```src``` and ```dest``` overlap, results are undefined — use ```memmove()``` instead.
+- No "smart" handling: doesn't stop at null bytes, doesn't adjust for types.
+
+---
+
+## Example
+
+```
+char src[] = "launch";
+char dest[10];
+
+memcpy(dest, src, 6);
+
+// dest now contains: "launch"
+```
 
 # memchr()
 
@@ -271,4 +357,101 @@ const char *needle = "sequence";
 char *found = strnstr(haystack, needle, 15);
 
 // found will be NULL — "sequence" starts at index 7, but ends past 15.
+```
+
+# strlcat()
+
+## Overview
+
+```strlcat()``` appends one string to the end of another, but with an important constraint: it respects a fixed buffer size.
+
+It’s like ```strcat()```, but safer. It won’t overflow the destination, and it always null-terminates the result (as long as ```size > 0```).
+
+It also returns the total length the final string *would have had*, letting you detect if any truncation occurred.
+
+---
+
+## How to Visualize It
+
+You’re building a phrase in memory using a fixed-size buffer.
+
+You start with:
+
+```dest = "space "```  
+```src = "is the place"```  
+```size = 16```
+
+We can visualize the buffer like this:
+
+Buffer: [s] [p] [a] [c] [e] [ ] [i] [s] [ ] [t] [h] [e] [ ] [p] [l] [\0]  
+Index:   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
+
+Only 10 extra bytes fit after ```"space "``` (which is 6 characters), so ```strlcat()``` appends as much of ```src``` as possible until the total buffer size (16) is reached.
+
+The final string in ```dest``` becomes:  
+```"space is the pl"```
+
+It’s truncated, but null-terminated.  
+The return value will be ```strlen(src) + strlen(original dest) = 13 + 6 = 19``` → telling you what the full string would have been if the buffer were big enough.
+
+---
+
+## Key Concepts
+
+- ```strlcat()``` appends ```src``` to ```dest```, but only up to ```size - strlen(dest) - 1``` bytes.
+- Ensures the result is null-terminated if ```size > 0```.
+- Returns the total length it *tried* to create.
+- If return value >= ```size```, truncation occurred.
+
+---
+
+## Analogy
+
+You’re sending a message to an old-school pager that can only hold a limited number of characters.
+
+- ```dest``` is already set to: ```"I "```  
+- ```src``` is the new message: ```"love you"```  
+- ```size``` is the pager’s maximum character limit
+
+Let’s say ```size = 6```. That includes space for the null terminator, so only 5 visible characters will fit in total.
+
+The pager adds as much of the new message as it can:
+
+```"I love"``` → message gets cut off at ```"I lov"``` and null-terminated.
+
+Even though only part of the message fits on the pager, for example, ```"I lov"``` the system still knows how many characters the *full* message would have required.
+
+That’s enough to detect that something was cut off, even if it can’t tell what exactly.  
+Was it ```"I love art"```? ```"I love sun"```? ```"I love cat"```? Or even ```"I love you"```?
+
+---
+
+## When To Use It?
+
+- Safely appending strings to fixed-size buffers.
+- Avoiding the dangers of ```strcat()``` (buffer overflows).
+- Writing log lines, packet data, or UI strings where bounds matter.
+- Needing to know if truncation occurred, based on return value.
+
+```size_t strlcat(char *dst, const char *src, size_t size);```
+
+---
+
+## Downsides of strlcat()
+
+- Not part of ANSI C — mostly seen on BSD systems.
+- The return value can be misinterpreted if you don’t know what it means.
+- Requires ```dest``` to be properly null-terminated.
+- Doesn't allocate memory, you manage the buffer.
+
+---
+
+## Example
+
+```
+char buffer[16] = "space ";
+size_t result = strlcat(buffer, "is the place", 16);
+
+// buffer now contains: "space is the pl"
+// result is 19 — full length it tried to create
 ```
