@@ -125,16 +125,22 @@ It operates on raw memory, not necessarily null-terminated strings.
 
 Imagine memory as a sequence of boxes, each holding a value:
 
+```
 [A] [B] [C] [D] [E] [F] [G]
+```
 
 Each box represents a byte in memory. You can think of it like this:
 
+```
 Byte index: 0   1   2   3   4   5   6  
 Values:     A   B   C   D   E   F   G
+```
 
 If you're using `memchr()` to search for the value `'D'` and tell it to search the first 5 bytes, it will go through:
 
+```
 [A] [B] [C] [D] [E]
+```
 
 It finds `'D'` at byte index 3 and stops there.
 
@@ -291,8 +297,10 @@ Imagine a text or song from Sun Ra.
 
 We can visualize it like a row of boxes, each one holds a character:
 
+```
 Text:   [s] [p] [a] [c] [e] [ ] [i] [s] [ ] [t] [h] [e] [ ] [p] [l] [a] [c] [e]  
 Index:   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17
+```
 
 Now suppose you're using ```strnstr()``` to search for ```"is"```  
 and you set ```len = 6```.
@@ -383,8 +391,10 @@ You start with:
 
 We can visualize the buffer like this:
 
+```
 Buffer: [s] [p] [a] [c] [e] [ ] [i] [s] [ ] [t] [h] [e] [ ] [p] [l] [\0]  
 Index:   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
+```
 
 Only 10 extra bytes fit after ```"space "``` (which is 6 characters), so ```strlcat()``` appends as much of ```src``` as possible until the total buffer size (16) is reached.
 
