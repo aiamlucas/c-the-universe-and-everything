@@ -41,18 +41,18 @@ It copies exactly ```n``` bytes from ```src``` to ```dest```.
 Picture two memory rows, side by side. You're moving values from the top row into the bottom one:
 
 Before ```memcpy()```:
-
+```
 src:   [A] [B] [C] [D] [E]  
 dest:  [x] [x] [x] [x] [x]
-
+```
 You call:  
 ```memcpy(dest, src, 3)```
 
 Afterward:
-
+```
 src:   [A] [B] [C] [D] [E]  
 dest:  [A] [B] [C] [x] [x]
-
+```
 Only the first 3 bytes were copied. No interpretation, just raw byte movement.
 
 ---
