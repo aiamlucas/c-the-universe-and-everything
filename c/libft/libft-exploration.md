@@ -306,7 +306,7 @@ Now suppose you're using ```strnstr()``` to search for ```"is"```
 and you set ```len = 6```.
 
 It scans from index 0 to 5:
-- ```"space "```` → no match for ```"is"```
+- ```"space "``` → no match for ```"is"```
 
 The substring ```"is"``` begins at index 6, but that’s outside the limit → not found.
 
