@@ -449,7 +449,7 @@ Was it ```"I love art"```? ```"I love sun"```? ```"I love cat"```? Or even ```"I
 
 ## Downsides of strlcat()
 
-- Not part of ANSI C — mostly seen on BSD systems.
+- Not part of ANSI C. It's mostly seen on BSD systems.
 - The return value can be misinterpreted if you don’t know what it means.
 - Requires ```dest``` to be properly null-terminated.
 - Doesn't allocate memory, you manage the buffer.
