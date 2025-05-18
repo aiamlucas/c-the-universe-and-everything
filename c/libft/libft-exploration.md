@@ -53,7 +53,7 @@ Afterward:
 src:   [A] [B] [C] [D] [E]  
 dest:  [A] [B] [C] [x] [x]
 
-Only the first 3 bytes were copied. No interpretation — just raw byte movement.
+Only the first 3 bytes were copied. No interpretation, just raw byte movement.
 
 ---
 
@@ -84,7 +84,7 @@ You don’t read them, interpret them or check the titles, you just move the phy
 ## When To Use It?
 
 - Duplicating binary data.
-- Copying arrays, structs, or raw memory blocks.
+- Copying arrays, structs or raw memory blocks.
 - Filling packet buffers, framebuffers or file chunks.
 - Any situation where precision and speed matter more than interpretation.
 
@@ -95,7 +95,7 @@ You don’t read them, interpret them or check the titles, you just move the phy
 ## Downsides of memcpy()
 
 - **Dangerous if misused**: copying past buffer bounds causes undefined behavior.
-- If ```src``` and ```dest``` overlap, results are undefined — use ```memmove()``` instead.
+- If ```src``` and ```dest``` overlap, results are undefined, use ```memmove()``` instead.
 - No "smart" handling: doesn't stop at null bytes, doesn't adjust for types.
 
 ---
@@ -189,7 +189,7 @@ Think of it like scanning a row of lockers for a specific item:
 `memcmp()` is the function that compares **two blocks of raw memory**, byte by byte, for a defined number of bytes.
 
 It doesn’t care about strings, null terminators or formatting.  
-It's all about **binary truth**: equal, greater, or less.
+It's all about **binary truth**: equal, greater or less.
 
 ---
 
@@ -222,7 +222,7 @@ If all compared bytes are identical, it returns `0`.
   - `0` if memory blocks are equal for `n` bytes.
   - A **positive** number if the first differing byte in `s1` is greater than in `s2`.
   - A **negative** number if it's smaller.
-- It doesn’t stop at `\0` — every byte is significant.
+- It doesn’t stop at `\0`, every byte is significant.
 
 ---
 
@@ -245,7 +245,7 @@ Just like ```memcmp()```, it doesn’t try to interpret the meaning of the data.
 - Comparing binary files or network packets.
 - Checking if two memory regions are identical.
 - Comparing structures (when layout and padding are known).
-- Quick equality checks at a low level — faster than iterating manually.
+- Quick equality checks at a low level, faster than iterating manually.
 
 ```
 // int memcmp(const void *s1, const void *s2, size_t n);
@@ -257,7 +257,7 @@ Just like ```memcmp()```, it doesn’t try to interpret the meaning of the data.
 
 - Returns **only the difference of the first mismatch**, not how many bytes differ.
 - Not safe for comparing structures with padding unless you're careful.
-- Doesn't short-circuit early in predictable ways — every byte must be explicitly told to matter.
+- Doesn't short-circuit early in predictable ways, every byte must be explicitly told to matter.
 - Comparison is purely mechanical: it won't help with encoding issues or logical equivalence (e.g., different byte orders representing same value).
 
 ---
@@ -279,7 +279,7 @@ int result = memcmp(a, b, 4);
 
 ``` strnstr() ``` is a C library function that searches for the **first occurrence** of a substring (``` needle ```) within a larger string (``` haystack ```), but only up to a specified maximum length.
 
-Unlike ``` strstr() ```, it doesn’t search beyond the given ``` len ```. It operates within strict bounds efficient, predictable, and safe.
+Unlike ``` strstr() ```, it doesn’t search beyond the given ``` len ```. It operates within strict bounds efficient, predictable and safe.
 
 ---
 
@@ -289,7 +289,7 @@ Imagine a text or song from Sun Ra.
 
 ```"space is the place"```
 
-We can visualize it like a row of boxes — each one holds a character:
+We can visualize it like a row of boxes, each one holds a character:
 
 Text:   [s] [p] [a] [c] [e] [ ] [i] [s] [ ] [t] [h] [e] [ ] [p] [l] [a] [c] [e]  
 Index:   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17
@@ -324,7 +324,7 @@ You're listening to the beginning of a song, trying to catch the chorus (```need
 But your headphones cut off after ```len``` seconds.
 
 If the chorus starts and finishes entirely within that snippet, you recognize the song.  
-But if it begins too late and gets cut off — it goes unnoticed.
+But if it begins too late and gets cut off, it goes unnoticed.
 
 ---
 
@@ -333,7 +333,7 @@ But if it begins too late and gets cut off — it goes unnoticed.
 - Looking for substrings safely within a limited range (e.g., bounded buffers).
 - Avoiding overreads in potentially non-null-terminated strings.
 - Working with untrusted input where length matters more than contents.
-- Parsing protocols, headers, or chunks of structured text without risking memory violations.
+- Parsing protocols, headers or chunks of structured text without risking memory violations.
 
 ``` char *strnstr(const char *haystack, const char *needle, size_t len); ```
 
@@ -365,7 +365,7 @@ char *found = strnstr(haystack, needle, 15);
 
 ```strlcat()``` appends one string to the end of another, but with an important constraint: it respects a fixed buffer size.
 
-It’s like ```strcat()```, but safer. It won’t overflow the destination, and it always null-terminates the result (as long as ```size > 0```).
+It’s like ```strcat()```, but safer. It won’t overflow the destination and it always null-terminates the result (as long as ```size > 0```).
 
 It also returns the total length the final string *would have had*, letting you detect if any truncation occurred.
 
@@ -430,7 +430,7 @@ Was it ```"I love art"```? ```"I love sun"```? ```"I love cat"```? Or even ```"I
 
 - Safely appending strings to fixed-size buffers.
 - Avoiding the dangers of ```strcat()``` (buffer overflows).
-- Writing log lines, packet data, or UI strings where bounds matter.
+- Writing log lines, packet data or UI strings where bounds matter.
 - Needing to know if truncation occurred, based on return value.
 
 ```size_t strlcat(char *dst, const char *src, size_t size);```
