@@ -190,6 +190,16 @@ Think of it like scanning a row of lockers for a specific item:
 - No structural awareness — can't distinguish meaningful data from noise (e.g., matching a byte in the middle of a multi-byte value).
 - Easy to misuse — passing the wrong size can cause undefined behavior, similar to other `mem*` functions but riskier than `str*`.
 
+## Example
+
+```
+char data[] = "space is the place";
+char *result = memchr(data, 'e', 10);
+
+// result points to: &data[4]
+// value at that position: 'e'
+```
+
 # memcmp()
 
 ## Overview
@@ -551,7 +561,7 @@ char *copy = strdup(original);
 
 printf("%s\n", copy);  // prints: launch
 
-free(copy); // don't forget to clean up
+free(copy);
 ```
 
 # calloc()
