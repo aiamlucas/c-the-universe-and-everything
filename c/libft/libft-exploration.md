@@ -573,15 +573,19 @@ Imagine allocating memory for 5 bytes.
 
 With ```malloc(5)```:
 
+```
 Allocated:  [??] [??] [??] [??] [??]  
 Values:     0x3C 0x9A 0x00 0xF1 0x77
+```
 
 The contents are unpredictable, the memory is uninitialized and may contain garbage values.
 
 With ```calloc(5, 1)```:
 
+```
 Allocated:  [00] [00] [00] [00] [00]  
 Values:     0x00 0x00 0x00 0x00 0x00
+```
 
 Each byte is set to ```0x00```, ensuring a clean and predictable starting state.
 
