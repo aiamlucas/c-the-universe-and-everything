@@ -25,6 +25,7 @@ Brought into being at t = 0, via Makefile.
 - [strnstr()](#strnstr)
 - [strlcat()](#strlcat)
 - [strdup()](#strdup)
+- [calloc()](#calloc)
 
 # memcpy()
 
@@ -504,10 +505,10 @@ If you modify one, the other stays untouched.
 
 ## Key Concepts
 
-- Allocates memory using ```malloc()```
-- Copies the content byte-by-byte, including the ```'\0'``` at the end
-- Returns ```NULL``` if memory allocation fails
-- You are responsible for freeing the result with ```free()```
+- Allocates memory using ```malloc()```.
+- Copies the content byte-by-byte, including the ```'\0'``` at the end.
+- Returns ```NULL``` if memory allocation fails.
+- You are responsible for freeing the result with ```free()```.
 
 ---
 
@@ -525,9 +526,9 @@ That’s what ```strdup()``` gives you: a fresh copy to do whatever you want wit
 
 ## When To Use It?
 
-- You want to modify a string without touching the original
-- You need a copy that survives outside the scope of a function or stack frame
-- You’re building new structures that own their data (e.g., tokens, arguments, log lines)
+- You want to modify a string without touching the original.
+- You need a copy that survives outside the scope of a function or stack frame.
+- You’re building new structures that own their data (e.g., tokens, arguments, log lines).
 - You need something that will outlive a temporary buffer
 
 ```char *strdup(const char *s);```
@@ -536,9 +537,9 @@ That’s what ```strdup()``` gives you: a fresh copy to do whatever you want wit
 
 ## Downsides of strdup()
 
-- Uses ```malloc()```. So you must ```free()``` the result
-- Fails silently if memory is tight, so always check for ```NULL```
-- Doesn’t let you copy partial strings (use ```strndup()``` for that)
+- Uses ```malloc()```. So you must ```free()``` the result.
+- Fails silently if memory is tight, so always check for ```NULL```.
+- Doesn’t let you copy partial strings (use ```strndup()``` for that).
 
 ---
 
@@ -551,4 +552,92 @@ char *copy = strdup(original);
 printf("%s\n", copy);  // prints: launch
 
 free(copy); // don't forget to clean up
+```
+
+# calloc()
+
+## Overview
+
+```calloc()``` is a memory allocation function that not only reserves space, it **also clears it**.
+
+Unlike ```malloc()```, which leaves memory uninitialized, ```calloc()``` ensures that all bytes are set to zero.
+
+You pass in how many elements you want, and how big each one is.  
+It multiplies the two and returns a pointer to a zeroed block of memory.
+
+---
+
+## how to visualize it
+
+Imagine allocating memory for 5 bytes.
+
+With ```malloc(5)```:
+
+Allocated:  [??] [??] [??] [??] [??]  
+Values:     0x3C 0x9A 0x00 0xF1 0x77
+
+The contents are unpredictable, the memory is uninitialized and may contain garbage values.
+
+With ```calloc(5, 1)```:
+
+Allocated:  [00] [00] [00] [00] [00]  
+Values:     0x00 0x00 0x00 0x00 0x00
+
+Each byte is set to ```0x00```, ensuring a clean and predictable starting state.
+
+---
+
+## Key Concepts
+
+- ```calloc(count, size)``` allocates ```count × size``` bytes.
+- All bytes are zero-initialized (```0x00```).
+- Return value is ```NULL``` if the allocation fails.
+- Often used to avoid explicitly calling ```memset()``` after allocation.
+- Total size is calculated internally, it protects against some overflow bugs.
+
+---
+
+## Analogy
+
+imagine a freshly printed page:
+
+- ```malloc(100)``` gives you a sheet of paper, but it might have might have ink streaks or artifacts from past use.
+- ```calloc(100, 1)``` gives you a **clean, white sheet**. Completely empty, no garbage data.
+
+in memory terms, every byte is set to ```0x00```.
+
+---
+
+## When To Use It?
+
+- You need zero-initialized memory.
+- You're allocating space for arrays, structs or buffers that must start empty.
+- You want to avoid garbage values in newly allocated space.
+- You want extra safety: ```calloc()``` checks for multiplication overflow internally.
+
+```void *calloc(size_t count, size_t size);```
+
+---
+
+## Downsides of calloc()
+
+- May be slower than ```malloc()``` in performance-critical code (zeroing takes time).
+- Still returns ```NULL``` on failure, so checking the result is essential.
+- If you don't need the memory cleared, ```malloc()``` is usually faster.
+
+---
+
+## Example
+
+```
+int *numbers = calloc(5, sizeof(int));
+
+// numbers points to: [0] [0] [0] [0] [0]
+
+if (!numbers)
+{
+    // handle allocation failure
+}
+
+free(numbers);
 ```
