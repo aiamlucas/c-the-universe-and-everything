@@ -655,3 +655,83 @@ if (!numbers)
 
 free(numbers);
 ```
+
+# ft_strjoin()
+
+## Overview
+
+```ft_strjoin()``` creates a **new string** by joining two strings together, placing ```s1``` first, then ```s2``` immediately after.
+
+It dynamically allocates memory for the result using ```malloc()``` and returns a pointer to the new combined string.
+
+---
+
+## How to Visualize It
+
+Imagine two strings laid out like train cars:
+
+```
+[s1]: [H] [e] [l] [l] [o]  
+[s2]: [ ] [W] [o] [r] [l] [d]
+```
+
+```ft_strjoin(s1, s2)``` allocates a new track, then copies both trains onto it:
+```
+[joined]: [H] [e] [l] [l] [o] [ ] [W] [o] [r] [l] [d] [\0]
+```
+
+It includes both strings, end-to-end and adds a null terminator at the end.
+
+---
+
+## Key Concepts
+
+- The function **allocates** enough memory to hold the full length of ```s1``` + ```s2``` + 1 (for ```'\0'```).
+- It **copies** the content of ```s1``` and ```s2``` into the new memory.
+- The result must be ```free()```d after use.
+- If either input is ```NULL```, or if memory allocation fails, it returns ```NULL```.
+
+---
+
+## Analogy
+
+Imagine making a mixtape:
+
+- ```s1``` is your side A.
+- ```s2``` is your side B.
+- ```ft_strjoin()``` creates a new tape that plays both, one after the other.
+
+You don’t overwrite the originals — you build a brand new track with both parts stitched together.
+
+---
+
+## When To Use It?
+
+- Combining strings to form file paths or URLs.
+- Appending suffixes, extensions, or formatted text.
+- Building log entries or error messages dynamically.
+- Creating clean, heap-allocated strings without modifying inputs.
+
+```char *ft_strjoin(char const *s1, char const *s2);```
+
+---
+
+## Downsides of ft_strjoin()
+
+- Uses ```malloc()``` and must ```free()``` the result to avoid memory leaks.
+- If either input is ```NULL```, the behavior is undefined unless you check first.
+- Not optimized for repeated joins in loops (consider ```strlcat()``` with buffers instead).
+
+---
+
+## Example
+
+```
+char *prefix = "Hello, ";
+char *suffix = "world!";
+char *result = ft_strjoin(prefix, suffix);
+
+// result points to: "Hello, world!"
+// Don’t forget to free it!
+free(result);
+```
