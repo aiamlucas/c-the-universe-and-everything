@@ -26,6 +26,7 @@ Brought into being at t = 0, via Makefile.
 - [strlcat()](#strlcat)
 - [strdup()](#strdup)
 - [calloc()](#calloc)
+- [strjoin()](#strjoin)
 
 # memcpy()
 
