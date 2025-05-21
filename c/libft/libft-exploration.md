@@ -26,7 +26,8 @@ Brought into being at t = 0, via Makefile.
 - [strlcat()](#strlcat)
 - [strdup()](#strdup)
 - [calloc()](#calloc)
-- [strjoin()](#strjoin)
+- [ft_strjoin()](#strjoin)
+- [ft_strtrim()](#strtrim)
 
 # memcpy()
 
@@ -690,7 +691,7 @@ It includes both strings, end-to-end and adds a null terminator at the end.
 - The function **allocates** enough memory to hold the full length of ```s1``` + ```s2``` + 1 (for ```'\0'```).
 - It **copies** the content of ```s1``` and ```s2``` into the new memory.
 - The result must be ```free()```d after use.
-- If either input is ```NULL```, or if memory allocation fails, it returns ```NULL```.
+- If either input is ```NULL``` or if memory allocation fails, it returns ```NULL```.
 
 ---
 
@@ -702,14 +703,14 @@ Imagine making a mixtape:
 - ```s2``` is your side B.
 - ```ft_strjoin()``` creates a new tape that plays both, one after the other.
 
-You don’t overwrite the originals — you build a brand new track with both parts stitched together.
+You don’t overwrite the originals. You build a brand new track with both parts stitched together.
 
 ---
 
 ## When To Use It?
 
 - Combining strings to form file paths or URLs.
-- Appending suffixes, extensions, or formatted text.
+- Appending suffixes, extensions or formatted text.
 - Building log entries or error messages dynamically.
 - Creating clean, heap-allocated strings without modifying inputs.
 
@@ -736,3 +737,110 @@ char *result = ft_strjoin(prefix, suffix);
 // Don’t forget to free it!
 free(result);
 ```
+
+# ft_strtrim()
+
+## Overview
+
+```ft_strtrim()``` removes unwanted characters from the beginning and end of a string. You define the characters to strip using the ```set``` parameter.
+
+It returns a newly allocated string with the trimmed content.
+
+---
+
+## Prototype
+
+```char *ft_strtrim(char const *s1, char const *set);```
+
+---
+
+## Parameters
+
+- ```s1```: The original string to be trimmed.
+- ```set```: The set of characters to remove from the start and end of ```s1```.
+
+---
+
+## Key Concepts
+
+- Characters in ```set``` are removed from both ends.
+- The middle part of the string is preserved exactly as is.
+- A new string is allocated using ```malloc()```.
+- Returns ```NULL``` if memory allocation fails.
+
+---
+
+## How to Visualize It
+
+Imagine your string is wrapped in padding you want to strip away:
+
+```
+s1: [' ']['\n'][' ']['H']['e']['l']['l']['o'][' ']['\t']
+set: [' ', '\n', '\t']
+```
+
+The trimmed result becomes:
+
+```
+['H']['e']['l']['l']['o']
+```
+
+Only the unwanted characters at the start and end are removed, not those inside the string.
+
+---
+
+
+## Analogy
+
+Imagine editing a film strip:
+
+- ```s1``` is the raw footage.
+- ```set``` is the slate and blank frames at the start and end.
+- ```ft_strtrim()``` cuts off those unwanted parts, leaving just the meaningful scene.
+
+---
+
+## When To Use It?
+
+- Cleaning up user input (e.g., remove whitespace).
+- Stripping formatting or markers from strings.
+- Trimming file names, command-line args, or text fields.
+- Any time you want to sanitize the edges of a string.
+
+---
+
+## Example
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+
+char *ft_strtrim(char const *s1, char const *set);
+
+int main(void)
+{
+    char *original = " \n\t  Hello World! \t\t\n";
+    char *trimmed = ft_strtrim(original, " \n\t");
+
+    if (trimmed)
+    {
+        printf("Trimmed: '%s'\n", trimmed);
+        free(trimmed);
+    }
+    return 0;
+}
+```
+
+---
+
+## Output
+
+```Trimmed: 'Hello World!'```
+
+---
+
+## Notes
+
+- Does not modify the original string.
+- If ```s1``` is entirely made of ```set``` characters, it returns an empty string.
+- Be sure to ```free()``` the result to avoid memory leaks.
