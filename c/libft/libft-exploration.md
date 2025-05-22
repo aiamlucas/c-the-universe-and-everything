@@ -27,6 +27,7 @@ Brought into being at t = 0, via Makefile.
 - [strrchr()](#strrchr)
 - [strdup()](#strdup)
 - [calloc()](#calloc)
+- [ft_substr()](#ft_substr)
 - [ft_strjoin()](#ft_strjoin)
 - [ft_strtrim()](#ft_strtrim)
 
@@ -728,6 +729,84 @@ if (!numbers)
 
 free(numbers);
 ```
+
+# ft_substr()
+
+## Overview
+
+```ft_substr()``` extracts a substring from a given string, starting at a specific index and copying up to a given length.
+
+It returns a **newly allocated string** that contains the portion from ```s[start]``` up to ```len``` characters or less, if the string ends before that.
+
+---
+
+## How to Visualize It
+
+Imagine this string laid out in memory:
+
+```
+s:   [s] [p] [a] [c] [e] [ ] [i] [s] [ ] [t] [h] [e] [\0]
+idx:  0   1   2   3   4   5   6   7   8   9  10  11
+```
+
+You call:
+
+```ft_substr("space is the", 6, 4)```
+
+It starts at index 6 (the ```'i'```) and grabs 4 characters:
+
+→ returns ```"is t"```
+
+---
+
+## Key Concepts
+
+- Returns a freshly allocated substring.
+- If ```start``` is past the end of the string, returns an empty string.
+- If ```len``` exceeds the available characters from ```start```, it copies only what’s left.
+- Uses ```malloc()``` — remember to ```free()``` it later.
+
+---
+
+## Analogy
+
+You're producing music:
+
+```s``` is the full audio track.  
+```start``` is where you place the marker.  
+```len``` is how many seconds you want.  
+```ft_substr()``` extracts a sound bite for remix or sample use.
+
+---
+
+## When To Use It?
+
+- Extracting parts of a string (e.g., word, sentence, token).
+- Slicing strings in parsers or tokenizers.
+- Copying a region of interest into a new buffer.
+
+```char *ft_substr(char const *s, unsigned int start, size_t len);```
+
+---
+
+## Downsides
+
+- Requires memory allocation.
+- Doesn’t modify original string.
+- Must handle edge cases (e.g., ```start > strlen(s)```).
+
+---
+
+## Example
+
+char *src = "space is the place";
+char *cut = ft_substr(src, 6, 7);
+
+// cut → "is the " (includes the space at the end)
+
+printf("%s\n", cut); // prints: is the
+
+free(cut);
 
 # ft_strjoin()
 
