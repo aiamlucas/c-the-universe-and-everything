@@ -24,6 +24,7 @@ Brought into being at t = 0, via Makefile.
 - [memcmp(()](#memcmp)
 - [strnstr()](#strnstr)
 - [strlcat()](#strlcat)
+- [strrchr()](#strrchr)
 - [strdup()](#strdup)
 - [calloc()](#calloc)
 - [ft_strjoin()](#ft_strjoin)
@@ -478,6 +479,76 @@ size_t result = strlcat(buffer, "is the place", 16);
 
 // buffer now contains: "space is the pl"
 // result is 19 — full length it tried to create
+```
+
+# strrchr()
+
+## Overview
+
+```strrchr()``` is a C standard library function that searches for the **last occurrence** of a character in a string.
+
+It works just like ```strchr()```, but instead of stopping at the first match, it scans the **entire string** and returns a pointer to the **last** match.
+
+---
+
+## How to Visualize It
+
+Imagine scanning a sentence from left to right, but you're only interested in the **last time** a certain letter appears.
+
+Example:
+
+```
+Text: [s] [p] [a] [c] [e] [ ] [i] [s] [ ] [t] [h] [e] [ ] [p] [l] [a] [c] [e] [\0]
+Index: 0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18
+```
+If you're looking for ```'e'```, the **first** one is at index 4, but ```strrchr()``` will return the one at index 17 — the **last** occurrence.
+
+---
+
+## Key Concepts
+
+- Searches from **start to end**, but only remembers the **last match**.
+- Returns a pointer to the last occurrence of the character.
+- If the character is not found, returns ```NULL```.
+- Includes the null terminator ```'\0'``` as a valid character to search for.
+
+---
+
+## Analogy
+
+You're reading a book looking for the last mention of a character's name.
+
+- You highlight every mention of "Lou" as you go.
+- At the end, you flip back to the **last one you highlighted**.
+- That’s what ```strrchr()``` gives you — the final appearance.
+
+---
+
+## When To Use It?
+
+- You need to find a file extension: ```strrchr(filename, '.')```.
+- Reversely parsing paths, emails, or suffixes.
+- Looking for the last newline, space, or delimiter in a string.
+
+```char *strrchr(const char *s, int c);```
+
+---
+
+## Downsides
+
+- Slower than ```strchr()``` in long strings — it must scan the entire string.
+- Only finds **one** match — the last one.
+- Works only on null-terminated strings.
+
+---
+
+## Example
+```
+const char *text = "space is the place";
+char *last_e = strrchr(text, 'e');
+
+// last_e now points to &text[17] → the last 'e'
+printf("%s\n", last_e); // prints: "e"
 ```
 
 # strdup()
