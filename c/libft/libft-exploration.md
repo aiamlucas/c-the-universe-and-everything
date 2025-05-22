@@ -22,6 +22,7 @@ Brought into being at t = 0, via Makefile.
 - [memcpy()](#memcpy)
 - [memchr()](#memchr)
 - [memcmp(()](#memcmp)
+- [memmove()](#memmove)
 - [strnstr()](#strnstr)
 - [strlcat()](#strlcat)
 - [strrchr()](#strrchr)
@@ -294,6 +295,130 @@ int result = memcmp(a, b, 4);
 // result will be negative: 3 - 5 = -2 (at index 2)
 ```
 ---
+
+# memmove()
+
+## Overview
+
+```memmove()``` is a memory copying function like ```memcpy()```, but with a key difference: it handles overlapping memory regions safely.
+
+It copies ```n``` bytes from ```src``` to ```dest``` and guarantees that no data is corrupted, even if ```src``` and ```dest``` overlap.
+
+---
+
+## Prototype
+
+```void *memmove(void *dest, const void *src, size_t n);```
+
+---
+
+## Key Concepts
+
+- Works like ```memcpy()```, but safely handles overlap.
+- If ```src``` is before ```dest``` and regions overlap, it copies **backward** to avoid overwriting data.
+- Returns ```dest```.
+
+---
+
+## How to Visualize It
+
+You have this memory block:
+
+```
+Index:   0   1   2   3   4   5   6   7  
+Memory: [A] [B] [C] [D] [E] [F] [G] [H]
+```
+
+Now you call:  
+```memmove(&mem[2], &mem[0], 4);```  
+→ Copy 4 bytes from index 0 to index 2
+
+The memory regions overlap:
+You're trying to copy ```[A][B][C][D]``` onto the area starting at ```mem[2]```, which already contains ```C, D, E...```.
+
+If you used ```memcpy()```, it would copy left to right, which could overwrite data before it's been moved:
+
+Step-by-step with ```memcpy()```:  
+
+```
+mem[2] = mem[0] → 'A'  
+mem[3] = mem[1] → 'B'  
+mem[4] = mem[2] → now mem[2] is 'A'  
+mem[5] = mem[3] → now mem[3] is 'B'  
+```
+
+Result (corrupted):  
+
+```
+[A] [B] [A] [B] [C?] [D?] ...
+```
+
+```memmove()``` avoids this by copying backward:
+
+Step-by-step with ```memmove()```:  
+
+```
+mem[5] = mem[3] → 'D'  
+mem[4] = mem[2] → 'C'  
+mem[3] = mem[1] → 'B'  
+mem[2] = mem[0] → 'A'  
+```
+
+Result (correct):  
+
+```
+[A] [B] [A] [B] [C] [D] ...
+```
+---
+
+## Analogy
+
+You're in a lab, working with a strip that displays the visible spectrum: from violet to red.
+
+You need to shift a section of the spectrum slightly forward to realign it with a new reference measurement.
+
+- ```src``` is the original section of wavelengths you're adjusting.
+- ```dest``` is the new position, slightly ahead on the same strip.
+- If you copy left to right (from violet to red), you'll overwrite parts of the spectrum before you finish.
+- ```memmove()``` avoids this by copying from the red end first, preserving every wavelength during the shift.
+
+---
+
+## When To Use It?
+
+- Moving data within the same buffer or array.
+- Shifting or reshuffling elements.
+- Safer alternative to ```memcpy()``` when you're unsure about overlap.
+
+---
+
+## Downsides of memmove()
+
+- Slightly slower than ```memcpy()``` because it checks for overlap.
+- Doesn’t protect you from copying outside the bounds, undefined behavior still applies.
+- Doesn’t stop at null terminators, works on raw memory only.
+
+---
+
+## Example
+
+```
+#include <stdio.h>
+#include <string.h>
+
+int main(void)
+{
+    char buffer[20] = "1234567890";
+
+    // Overlapping copy — copy "12345" into position 2
+    memmove(buffer + 2, buffer, 5);
+
+    printf("%s\n", buffer);
+    // Output: "1212345890"
+
+    return 0;
+}
+```
 
 # strnstr()
 
