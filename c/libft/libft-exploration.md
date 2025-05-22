@@ -799,6 +799,7 @@ You're producing music:
 
 ## Example
 
+```
 char *src = "space is the place";
 char *cut = ft_substr(src, 6, 7);
 
@@ -807,6 +808,7 @@ char *cut = ft_substr(src, 6, 7);
 printf("%s\n", cut); // prints: is the
 
 free(cut);
+```
 
 # ft_strjoin()
 
