@@ -3,8 +3,7 @@
 Git is a version control system and an essential tool for developers. Its a good idea to get confortable with it early on. 
 This document outlines a workflow for managing your Git repositories when working on 42 projects, with a focus on using GitHub alongside Vogsphere (the 42 internal Git hosting service).
 
-If you're interested in the background of Git and why it works the way it does,  
-[this talk by Linus Torvalds](https://www.youtube.com/watch?v=idLyobOhtO4) offers a clear explanation from the creator himself.
+If you're interested in the background of Git and why it works the way it does, [this talk by Linus Torvalds](https://www.youtube.com/watch?v=idLyobOhtO4) offers a clear explanation from the creator himself.
 
 ## Important: GitHub and 42 Project Policy
 
