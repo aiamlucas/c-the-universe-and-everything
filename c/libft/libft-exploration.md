@@ -1510,9 +1510,7 @@ int main(void)
 ## Overview
 
 ```ft_striteri()``` iterates over a string and applies a function to each character **in-place**.
-
 Unlike ```ft_strmapi()```, which builds a new string, this function modifies the original one by passing each character's **address** and its **index** to the callback.
-
 It’s useful when you want to apply transformations directly to an existing string.
 
 ---
