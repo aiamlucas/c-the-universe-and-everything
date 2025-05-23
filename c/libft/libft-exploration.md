@@ -32,6 +32,10 @@ Brought into being at t = 0, via Makefile.
 - [ft_strjoin()](#ft_strjoin)
 - [ft_strtrim()](#ft_strtrim)
 - [ft_split()](#ft_split)
+- [ft_strmapi()](#ft_strmapi)
+- [ft_striteri()](#ft_striteri)
+
+
 
 # memcpy()
 
@@ -661,7 +665,7 @@ You're reading a book looking for the last mention of a character's name.
 
 ---
 
-## Downsides
+## Downsides of strrchr()
 
 - Slower than ```strchr()``` in long strings — it must scan the entire string.
 - Only finds **one** match — the last one.
@@ -915,7 +919,7 @@ You're producing music:
 
 ---
 
-## Downsides
+## Downsides of ft_substr()
 
 - Requires memory allocation.
 - Doesn’t modify original string.
@@ -1393,3 +1397,206 @@ you need both the **structure** (the array) and the **content** (each word) to b
 
 Just like ```argv[]``` in ```main()```, you can iterate over the array until you hit ```NULL```, which marks the end.
 Since ```argv``` is also a ```char **```, you can access each word using ```argv[i]``` and each character with ```argv[i][j]```.
+
+# ft_strmapi()
+
+## Overview
+
+```ft_strmapi()``` builds a new string by applying a function ```f()``` to each character of an input string ```s```.
+
+The function receives both the character and its index in the string: so it can make changes based on **position** and **content**.
+
+It returns a newly allocated string containing the results of each transformation.
+
+---
+
+## Prototype
+
+```
+char *ft_strmapi(char const *s, char (*f)(unsigned int, char));
+```
+
+---
+
+## How to Visualize It
+
+Input:
+
+```
+[s] [p] [a] [c] [e]
+```
+
+If your function capitalizes even indices:
+
+```
+Index: 0 1 2 3 4
+Char: 's' 'p' 'a' 'c' 'e'
+Output: 'S' 'p' 'A' 'c' 'E'
+```
+
+New string:
+
+```
+[S] [p] [A] [c] [E] [\0]
+```
+
+---
+
+## Key Concepts
+
+- Iterates over each character of ```s```
+- Applies the function ```f(i, s[i])```:
+  - ```i``` = the index
+  - ```s[i]``` = the character
+- Stores the result in a new string
+- Uses ```malloc()``` to allocate memory
+- Returns ```NULL``` if allocation fails
+
+---
+
+## Analogy
+
+Imagine a synth processing a sequence of notes:
+
+- Each character from ```s``` is a musical note entering the synth.
+- The function ```f()``` acts like a programmable filter: it receives the note and its time step (index).
+- Depending on the index and note, it alters the sound: changes pitch, applies modulation or adds an effect.
+- The processed notes are recorded in sequence into a new track.
+
+---
+
+## When To Use It?
+
+- You need to transform a string based on both character and position
+- You want to avoid modifying the original string
+- You're implementing your own version of ```map()``` for strings
+
+---
+
+## Downsides of ft_strmapi()
+
+- No early stopping, every character is processed
+
+---
+
+## Example
+
+```
+#include <stdio.h>
+#include <ctype.h>
+
+char toggle_case(unsigned int i, char c)
+{
+    if (i % 2 == 0)
+        return toupper(c);
+    return tolower(c);
+}
+
+int main(void)
+{
+    char *original = "space";
+    char *mapped = ft_strmapi(original, toggle_case);
+
+    if (mapped)
+        printf("%s\n", mapped);  // Output: SpAcE
+
+    free(mapped);
+    return 0;
+}
+```
+
+# ft_striteri()
+
+## Overview
+
+```ft_striteri()``` iterates over a string and applies a function to each character **in-place**.
+
+Unlike ```ft_strmapi()```, which builds a new string, this function modifies the original one by passing each character's **address** and its **index** to the callback.
+
+It’s useful when you want to apply transformations directly to an existing string.
+
+---
+
+## Prototype
+
+```
+void ft_striteri(char *s, void (*f)(unsigned int, char *));
+```
+
+## How to Visualize It
+
+Imagine each character in a string is a switch on a control panel:
+
+```
+[s] [p] [a] [c] [e]
+ 0   1   2   3   4
+```
+
+Your function ```f()``` visits each one and can flip it, label it, or reset it — because you’re handed a pointer to each character.
+
+For example, you might:
+- Capitalize even-indexed characters
+- Replace all vowels
+- Increment ASCII values
+
+And the changes will affect the original panel.
+
+---
+
+## Key Concepts
+
+- Applies a function ```f(index, &char)``` to every character in ```s```.
+- The callback function gets:
+  - The index of the character
+  - A pointer to the character (so it can modify it)
+- Operates **in-place** (modifies the original string).
+- No return value.
+
+---
+
+## Analogy
+
+You're controlling an RGB LED strip using an Arduino.
+
+- Each LED holds a color made up of 3 bytes (RGB: 255 255 255)
+- A function walks through the strip, one LED at a time.
+- It receives both the LED's position and direct access to its color bytes.
+- Each LED can be modified in place, turning red, dimming, flashing, etc... based on its index or current color.
+
+---
+
+## When To Use It?
+
+- You want to apply character transformations *in-place*.
+- You’re not building a new string, just adjusting an existing one.
+- You need both the character and its index to apply logic.
+
+---
+
+## Downsides of ft_striteri()
+
+- Not suitable for `const char *` input. The string must be mutable.
+- Offers no way to stop midway. The function `f()` is applied to all characters.
+
+## Example
+
+```
+#include <stdio.h>
+#include <ctype.h>
+
+void to_upper_if_even(unsigned int i, char *c)
+{
+	if (i % 2 == 0 && *c)
+		*c = toupper(*c);
+}
+
+int main(void)
+{
+	char str[] = "space is the place";
+
+	ft_striteri(str, to_upper_if_even);
+
+	printf("%s\n", str);  // Output: "SpAcE Is ThE PlAcE"
+	return 0;
+}
+```
