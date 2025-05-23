@@ -1166,7 +1166,9 @@ The function scans the string, skipping over single or repeated commas and split
 → "the"
 ```
 
-Each piece becomes a new string in the array. The array ends with a ```NULL``` pointer:
+Each piece becomes a new string in the array. 
+
+The array ends with a ```NULL``` pointer:
 
 ```
 result[0]: [ "space" ]
@@ -1191,8 +1193,9 @@ result:
   +--------+
 ```
 
-Each ```ptr``` points to a null-terminated string allocated separately.  
-The array itself is also allocated. It's a dynamic list of string pointers ending with ```NULL```.
+> Each ```ptr``` points to a null-terminated string allocated separately. 
+> The array itself is also allocated. It's a dynamic list of string pointers ending with ```NULL```.
+
 ---
 
 ## Analogy
