@@ -31,6 +31,7 @@ Brought into being at t = 0, via Makefile.
 - [ft_substr()](#ft_substr)
 - [ft_strjoin()](#ft_strjoin)
 - [ft_strtrim()](#ft_strtrim)
+- [ft_split()](#ft_split)
 
 # memcpy()
 
@@ -1121,3 +1122,281 @@ int main(void)
 - Does not modify the original string.
 - If ```s1``` is entirely made of ```set``` characters, it returns an empty string.
 - Be sure to ```free()``` the result to avoid memory leaks.
+
+# ft_split()
+
+## Overview
+
+```ft_split()``` takes a string and splits it into an array of substrings, using a specific delimiter character.
+
+It allocates memory for each substring and returns a ```NULL``` terminated array of newly allocated strings.
+
+---
+
+## Prototype
+
+```char **ft_split(char const *s, char c);```
+
+---
+
+## Key Concepts
+
+- Parses the string ```s``` and breaks it into segments wherever ```c``` appears.
+- Allocates memory for each substring using ```malloc()```.
+- Returns an array of pointers, one for each substring, ending with a ```NULL``` pointer.
+- Returns ```NULL``` if allocation fails at any point (and should free any already-allocated memory).
+
+---
+
+## How to Visualize It
+
+Imagine a string like:
+
+```
+[s] [p] [a] [c] [e] [,] [i] [s] [,] [,] [t] [h] [e]
+```
+
+And your delimiter is ```','```.
+
+The function scans the string, skipping over single or repeated commas and splits it wherever it finds content between them:
+
+```
+→ "space"
+→ "is"
+→ "the"
+```
+
+Each piece becomes a new string in the array. The array ends with a ```NULL``` pointer:
+
+```
+result[0]: [ "space" ]
+result[1]: [  "is"   ]
+result[2]: [  "the"  ]
+result[3]: [  NULL   ]
+```
+---
+
+Memory layout:
+
+```
+result:
+  +--------+
+  | ptr →  | → "space"
+  +--------+
+  | ptr →  | → "is"
+  +--------+
+  | ptr →  | → "the"
+  +--------+
+  | NULL   |
+  +--------+
+```
+
+Each ```ptr``` points to a null-terminated string allocated separately.  
+The array itself is also allocated. It's a dynamic list of string pointers ending with ```NULL```.
+---
+
+## Analogy
+
+Splitting a Book into Articles
+
+You have a large book containing multiple articles, separated by blank pages.
+
+- ```s``` is the full book.
+- ```c``` is the blank page, the marker between articles.
+- Every time you find a blank page, you cut out the article that came before it.
+- ```ft_split()``` gives you a stack of small books, each holding one article.
+- The last slot is empty and it tells you: "there are no more articles left."
+
+---
+
+## When To Use It?
+
+- Breaking CSV-like strings or command-line input into parts.
+- Tokenizing strings based on spaces, commas, or other characters.
+- Separating fields from logs or config lines.
+
+---
+
+## Downsides of ft_split()
+
+- Memory-heavy: allocates a new string for every chunk.
+- Needs careful cleanup if any ```malloc()``` call fails.
+- Doesn’t handle escaped delimiters or nested structures — just raw split logic.
+- Performs just a simple split at every delimiter. It doesn't recognize escape characters or groupings like quotes or parentheses.
+
+---
+
+## Example
+
+```
+#include <stdio.h>
+
+int main(void)
+{
+    char **words = ft_split("launch,sequence,initiated", ',');
+
+    if (!words)
+        return (1);
+
+    int i = 0;
+    while (words[i])
+    {
+        printf("[%s]\n", words[i]);
+		free(words[i]); // Free each substring
+        i++;
+    }
+	free(words); // Free the array of pointers
+    return 0;
+}
+```
+
+## Strategies to Solve It
+
+To implement ```ft_split()``` with input:
+
+```
+"space,,,is,,the"
+```
+
+and delimiter ```','```, we can break the problem down into structured steps.
+
+---
+
+### Step 1: Count how many substrings you’ll need
+
+Scan through the string to count how many *non-empty* segments appear between delimiters.
+
+Visual breakdown:
+
+```
+[s] [p] [a] [c] [e] [,] [,] [,] [i] [s] [,] [,] [t] [h] [e]
+```
+
+- First word: "space"
+- Skip 3 commas
+- Second word: "is"
+- Skip 2 commas
+- Third word: "the"
+
+**Total: 3 substrings**
+
+This tells us how many pointers we need to allocate in the ```char **``` array.  
+Don’t forget to add ```1``` extra for the final ```NULL``` terminator.
+
+---
+
+### Step 2: Identify each word’s range
+
+Walk through the string:
+
+- Skip delimiters
+- When you find a non-delimiter, mark it as the start of a word
+- Continue until you hit the next delimiter or end of string
+- That’s your end
+
+From the input:
+
+- Word 1: indices 0–4 → "space"
+- Word 2: indices 8–9 → "is"
+- Word 3: indices 12–14 → "the"
+
+You now have the boundaries needed to extract substrings.
+
+---
+
+### Step 3: Allocate and copy each substring
+
+For each word:
+
+- Measure its length: ```len = end - start```
+- Allocate ```len + 1``` bytes (to hold the word and ```\0```)
+- Use ```ft_substr()``` to extract the slice
+- Null-terminate it (which ```ft_substr()``` handles for you)
+
+Then store that pointer in your ```char **array```.
+
+Final result:
+
+```
+array[0] = "space"
+array[1] = "is"
+array[2] = "the"
+array[3] = NULL
+```
+
+---
+
+### Step 4: Finalize the array
+
+Set the final element in the ```char **``` array to ```NULL``` to indicate the end.  
+This makes iteration safe — similar to how ```argv[]``` works in ```main()```.
+
+---
+
+### Step 5: Handle memory allocation failures
+
+At any point, if a ```malloc()``` fails:
+
+- Free all previously allocated substrings
+- Free the array itself
+- Return ```NULL```
+
+Use a helper like ```free_split(char **array)``` for this cleanup.
+
+---
+
+### Summary of Tools You Can Use
+
+- ```ft_substr()``` — extract each word cleanly
+- ```malloc()```, ```free()``` — for memory control
+- ```ft_strlen()``` — optionally to measure word lengths
+- ```free_split()``` — to release memory if something fails
+
+This structured process — counting, locating, slicing, and cleaning up. Makes your ```ft_split()``` implementation both safe and readable.
+
+---
+
+### Implementation Tip: Break It Into Helpers
+
+To keep your ```ft_split()``` readable and modular, consider writing small helper functions for each major step.
+
+Some examples:
+
+- ```count_words(const char *s, char c)```  
+  → returns how many substrings you'll need (Step 1)
+
+- ```word_length(const char *s, char c)```  
+  → returns the length of the next word starting at position ```s``` (Step 2)
+
+- ```free_split(char **array)```  
+  → frees all memory if an allocation fails (Step 5)
+
+Using these helpers makes your main ```ft_split()``` logic easier to write and debug.
+
+### Behind the Scenes: What's ```char **```?
+
+The return type of ```ft_split()``` is a **double pointer** → ```char **```.
+
+Why? Because you're returning an array of strings.
+
+Each ```char *``` points to a dynamically allocated word.
+
+The ```char **``` itself is a pointer to the first element of this array (an array of pointers).
+
+Here’s what it looks like in memory:
+
+```
+result → [ ptr ] → "space"
+[ ptr ] → "is"
+[ ptr ] → "the"
+[ NULL ]
+```
+
+- Each word is a ```char *``` (a string)
+- The array of those words is a ```char **``` (a pointer to a string pointer)
+
+This is why ```ft_split()``` returns a double pointer:  
+you need both the **structure** (the array) and the **content** (each word) to be accessible.
+
+Just like ```argv[]``` in ```main()```, you can iterate over the array until you hit ```NULL```, which marks the end.
+Since ```argv``` is also a ```char **```, you can access each word using ```argv[i]``` and each character with ```argv[i][j]```.
