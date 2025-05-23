@@ -1128,7 +1128,6 @@ int main(void)
 ## Overview
 
 ```ft_split()``` takes a string and splits it into an array of substrings, using a specific delimiter character.
-
 It allocates memory for each substring and returns a ```NULL``` terminated array of newly allocated strings.
 
 ---
@@ -1157,7 +1156,6 @@ Imagine a string like:
 ```
 
 And your delimiter is ```','```.
-
 The function scans the string, skipping over single or repeated commas and splits it wherever it finds content between them:
 
 ```
@@ -1167,7 +1165,6 @@ The function scans the string, skipping over single or repeated commas and split
 ```
 
 Each piece becomes a new string in the array. 
-
 The array ends with a ```NULL``` pointer:
 
 ```
@@ -1201,7 +1198,6 @@ result:
 ## Analogy
 
 Splitting a Book into Articles
-
 You have a large book containing multiple articles, separated by blank pages.
 
 - ```s``` is the full book.
@@ -1268,7 +1264,6 @@ and delimiter ```','```, we can break the problem down into structured steps.
 ### Step 1: Count how many substrings you’ll need
 
 Scan through the string to count how many *non-empty* segments appear between delimiters.
-
 Visual breakdown:
 
 ```
@@ -1317,7 +1312,6 @@ For each word:
 - Null-terminate it (which ```ft_substr()``` handles for you)
 
 Then store that pointer in your ```char **array```.
-
 Final result:
 
 ```
@@ -1379,13 +1373,9 @@ Using these helpers makes your main ```ft_split()``` logic easier to write and d
 ### Behind the Scenes: What's ```char **```?
 
 The return type of ```ft_split()``` is a **double pointer** → ```char **```.
-
 Why? Because you're returning an array of strings.
-
 Each ```char *``` points to a dynamically allocated word.
-
 The ```char **``` itself is a pointer to the first element of this array (an array of pointers).
-
 Here’s what it looks like in memory:
 
 ```
