@@ -1,7 +1,9 @@
 # Libft Exploration
 
 Libft is the first satellite in the 42 galaxy.
+
 → assembled from nothing but *pointers, patience and manual pages.
+
 It orbits the raw memory sector from `0x00` to `0xFF`, traversing RAM, entering registers, moving through `rdx`, `rsi`, `rdi` >> one byte at a time.
 
 100% handcraft.  
