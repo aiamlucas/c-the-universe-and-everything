@@ -1365,10 +1365,8 @@ Some examples:
 
 - ```count_words(const char *s, char c)```  
   → returns how many substrings you'll need (Step 1)
-
 - ```word_length(const char *s, char c)```  
   → returns the length of the next word starting at position ```s``` (Step 2)
-
 - ```free_split(char **array)```  
   → frees all memory if an allocation fails (Step 5)
 
@@ -1394,7 +1392,6 @@ result → [ ptr ] → "space"
 
 This is why ```ft_split()``` returns a double pointer:  
 you need both the **structure** (the array) and the **content** (each word) to be accessible.
-
 Just like ```argv[]``` in ```main()```, you can iterate over the array until you hit ```NULL```, which marks the end.
 Since ```argv``` is also a ```char **```, you can access each word using ```argv[i]``` and each character with ```argv[i][j]```.
 
@@ -1403,9 +1400,7 @@ Since ```argv``` is also a ```char **```, you can access each word using ```argv
 ## Overview
 
 ```ft_strmapi()``` builds a new string by applying a function ```f()``` to each character of an input string ```s```.
-
 The function receives both the character and its index in the string: so it can make changes based on **position** and **content**.
-
 It returns a newly allocated string containing the results of each transformation.
 
 ---
