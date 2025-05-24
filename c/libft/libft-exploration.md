@@ -24,6 +24,7 @@ Brought into being at t = 0, via Makefile.
 - [memchr()](#memchr)
 - [memcmp(()](#memcmp)
 - [memmove()](#memmove)
+- [strlcpy()](#strlcpy)
 - [strnstr()](#strnstr)
 - [strlcat()](#strlcat)
 - [strrchr()](#strrchr)
@@ -546,6 +547,115 @@ int main(void)
     // Output: "1212345890"
 
     return 0;
+}
+```
+
+# strlcpy()
+
+## Overview
+
+```strlcpy()``` copies a string from a source to a destination buffer, while ensuring the copy is **safe** and does not exceed the buffer's size.
+
+It ensures that the destination string is **null-terminated** and that **no buffer overflows** occur, as long as ```size > 0```.
+
+It’s a safer alternative to ```strcpy()```.
+
+---
+
+## Prototype
+
+```size_t strlcpy(char *dst, const char *src, size_t size);```
+
+---
+
+## Key Concepts
+
+- Copies up to ```size - 1``` characters from ```src``` into ```dst```.
+- Always null-terminates the destination if ```size > 0```.
+- Returns the **total length** of ```src``` (not the number of bytes copied).
+- If the return value ≥ ```size```, it means **truncation** occurred.
+
+---
+
+## How to Visualize It
+
+Imagine:
+
+```
+src: [h] [e] [l] [l] [o] [!] [\0]
+dst: [x] [x] [x] [x] [x] [x] [x]
+size = 6
+```
+
+After calling ```strlcpy(dst, src, 6)```:
+
+```
+dst: [h] [e] [l] [l] [o] [\0] [?]
+```
+
+- Copied 5 characters, added null terminator
+- Return value: 6 (length of src)
+- The return value tells you what *would* have been copied
+
+---
+
+## Analogy
+
+You're pouring water into a bottle:
+
+- ```src``` is the water source.
+- ```dst``` is the bottle.
+- ```size``` is the bottle's capacity.
+- ```strlcpy()``` fills the bottle up to the safe limit and leaves a marker (null byte) at the end.
+- It also tells you how much water there was in total, even if not all of it fit.
+
+---
+
+## When To Use It?
+
+- Safer string copying into fixed-size buffers.
+- When you want guaranteed null termination.
+- When you care about whether truncation occurred.
+- Alternative to ```strncpy()``` or ```strcpy()```.
+
+---
+
+## Downsides of strlcpy()
+
+- Not part of ANSI C (commonly found on BSD systems and some Linux distros).
+- Requires checking the return value to detect truncation.
+- Slower than ```memcpy()``` due to null checking and length computation.
+
+---
+
+## Example
+
+```
+// Prototype: size_t strlcpy(char *dst, const char *src, size_t size);
+
+#include <stdio.h>
+#include <string.h>
+
+int main(void)
+{
+    char buffer[6];
+    size_t copied = strlcpy(buffer, "launch", sizeof(buffer));
+
+    printf("buffer: \"%s\"\n", buffer);       // Output: "launc"
+    printf("return: %zu\n", copied);          // Output: 6 (length of src)
+
+    return 0;
+}
+
+---
+
+## Note
+
+If you want to know **how much space you needed**, compare the return value to your buffer size:
+
+if (strlcpy(dst, src, size) >= size)
+{
+    // Truncation occurred
 }
 ```
 
