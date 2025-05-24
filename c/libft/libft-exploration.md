@@ -48,6 +48,12 @@ It copies exactly ```n``` bytes from ```src``` to ```dest```.
 
 ---
 
+## Prototype
+
+```void *memcpy(void *dest, const void *src, size_t n);```
+
+---
+
 ## How to Visualize It
 
 Picture two memory rows, side by side. You're moving values from the top row into the bottom one:
@@ -100,8 +106,6 @@ You don’t read them, interpret them or check the titles, you just move the phy
 - Filling packet buffers, framebuffers or file chunks.
 - Any situation where precision and speed matter more than interpretation.
 
-```void *memcpy(void *dest, const void *src, size_t n);```
-
 ---
 
 ## Downsides of memcpy()
@@ -111,6 +115,8 @@ You don’t read them, interpret them or check the titles, you just move the phy
 - No "smart" handling: doesn't stop at null bytes, doesn't adjust for types.
 
 ---
+
+```void *memcpy(void *dest, const void *src, size_t n);```
 
 ## Example
 
@@ -130,6 +136,12 @@ memcpy(dest, src, 6);
 ```memset()``` is a C standard library function used to fill a block of memory with a single byte value.
 
 It’s commonly used to initialize arrays, buffers, or structs to a known value, typically ```0```.
+
+---
+
+## Prototype
+
+```void *memset(void *s, int c, size_t n);```
 
 ---
 
@@ -195,6 +207,8 @@ You have a digital display of 1,000 LEDs still showing the last frame from a pre
 
 ---
 
+```void *memset(void *s, int c, size_t n);```
+
 ## Example
 
 ```
@@ -226,6 +240,12 @@ int main(void)
 `memchr()` is a C standard library function used to search through a specified number of bytes in memory, looking for the **first occurrence** of a particular byte value.
 
 It operates on raw memory, not necessarily null-terminated strings.
+
+---
+
+## Prototype
+
+```void *memchr(const void *s, int c, size_t n);```
 
 ---
 
@@ -285,9 +305,6 @@ Think of it like scanning a row of lockers for a specific item:
 - Working with network packets, image data, or files where string functions won’t help.
 - Anytime you need fast, low-level memory inspection.
 
-```
-// void *memchr(const void *s, int c, size_t n);
-```
 
 ## Downsides of memchr()
 
@@ -295,6 +312,10 @@ Think of it like scanning a row of lockers for a specific item:
 - Works on **raw bytes** — unlike `strchr()`, it doesn't stop at null terminators (`\0`), so it's not safe for C strings unless length is controlled.
 - No structural awareness — can't distinguish meaningful data from noise (e.g., matching a byte in the middle of a multi-byte value).
 - Easy to misuse — passing the wrong size can cause undefined behavior, similar to other `mem*` functions but riskier than `str*`.
+
+---
+
+```void *memchr(const void *s, int c, size_t n);```
 
 ## Example
 
@@ -314,6 +335,12 @@ char *result = memchr(data, 'e', 10);
 
 It doesn’t care about strings, null terminators or formatting.  
 It's all about **binary truth**: equal, greater or less.
+
+---
+
+## Prototype
+
+```int memcmp(const void *s1, const void *s2, size_t n);```
 
 ---
 
@@ -371,10 +398,6 @@ Just like ```memcmp()```, it doesn’t try to interpret the meaning of the data.
 - Comparing structures (when layout and padding are known).
 - Quick equality checks at a low level, faster than iterating manually.
 
-```
-// int memcmp(const void *s1, const void *s2, size_t n);
-```
-
 ---
 
 ## Downsides of memcmp()
@@ -385,6 +408,8 @@ Just like ```memcmp()```, it doesn’t try to interpret the meaning of the data.
 - Comparison is purely mechanical: it won't help with encoding issues or logical equivalence (e.g., different byte orders representing same value).
 
 ---
+
+```int memcmp(const void *s1, const void *s2, size_t n);```
 
 ## Example
 
@@ -501,6 +526,8 @@ You need to shift a section of the spectrum slightly forward to realign it with 
 
 ---
 
+```void *memmove(void *dest, const void *src, size_t n);```
+
 ## Example
 
 ```
@@ -528,6 +555,12 @@ int main(void)
 ``` strnstr() ``` is a C library function that searches for the **first occurrence** of a substring (``` needle ```) within a larger string (``` haystack ```), but only up to a specified maximum length.
 
 Unlike ``` strstr() ```, it doesn’t search beyond the given ``` len ```. It operates within strict bounds efficient, predictable and safe.
+
+---
+
+## Prototype
+
+```char *strnstr(const char *haystack, const char *needle, size_t len);```
 
 ---
 
@@ -598,6 +631,8 @@ But if it begins too late and gets cut off, it goes unnoticed.
 
 ---
 
+```char *strnstr(const char *haystack, const char *needle, size_t len);```
+
 ## Example
 
 ```
@@ -618,6 +653,12 @@ char *found = strnstr(haystack, needle, 15);
 It’s like ```strcat()```, but safer. It won’t overflow the destination and it always null-terminates the result (as long as ```size > 0```).
 
 It also returns the total length the final string *would have had*, letting you detect if any truncation occurred.
+
+---
+
+## Prototype
+
+```size_t strlcat(char *dst, const char *src, size_t size);```
 
 ---
 
@@ -685,8 +726,6 @@ Was it ```"I love art"```? ```"I love sun"```? ```"I love cat"```? Or even ```"I
 - Writing log lines, packet data or UI strings where bounds matter.
 - Needing to know if truncation occurred, based on return value.
 
-```size_t strlcat(char *dst, const char *src, size_t size);```
-
 ---
 
 ## Downsides of strlcat()
@@ -697,6 +736,8 @@ Was it ```"I love art"```? ```"I love sun"```? ```"I love cat"```? Or even ```"I
 - Doesn't allocate memory, you manage the buffer.
 
 ---
+
+```size_t strlcat(char *dst, const char *src, size_t size);```
 
 ## Example
 
@@ -715,6 +756,12 @@ size_t result = strlcat(buffer, "is the place", 16);
 ```strrchr()``` is a C standard library function that searches for the **last occurrence** of a character in a string.
 
 It works just like ```strchr()```, but instead of stopping at the first match, it scans the **entire string** and returns a pointer to the **last** match.
+
+---
+
+## Prototype
+
+```char *strrchr(const char *s, int c);```
 
 ---
 
@@ -757,8 +804,6 @@ You're reading a book looking for the last mention of a character's name.
 - Reversely parsing paths, emails, or suffixes.
 - Looking for the last newline, space, or delimiter in a string.
 
-```char *strrchr(const char *s, int c);```
-
 ---
 
 ## Downsides of strrchr()
@@ -768,6 +813,8 @@ You're reading a book looking for the last mention of a character's name.
 - Works only on null-terminated strings.
 
 ---
+
+```char *strrchr(const char *s, int c);```
 
 ## Example
 ```
@@ -788,6 +835,12 @@ It’s like saying:
 > “Give me a fresh copy of this string, living in its own space.”
 
 You give it a ```const char *s``` and it returns a ```char *``` that points to a heap-allocated duplicate.
+
+---
+
+## Prototype
+
+```char *strdup(const char *s);```
 
 ---
 
@@ -841,8 +894,6 @@ That’s what ```strdup()``` gives you: a fresh copy to do whatever you want wit
 - You’re building new structures that own their data (e.g., tokens, arguments, log lines).
 - You need something that will outlive a temporary buffer
 
-```char *strdup(const char *s);```
-
 ---
 
 ## Downsides of strdup()
@@ -854,6 +905,8 @@ That’s what ```strdup()``` gives you: a fresh copy to do whatever you want wit
 ---
 
 ## Example
+
+```char *strdup(const char *s);```
 
 ```
 char *original = "launch";
@@ -874,6 +927,12 @@ Unlike ```malloc()```, which leaves memory uninitialized, ```calloc()``` ensures
 
 You pass in how many elements you want, and how big each one is.  
 It multiplies the two and returns a pointer to a zeroed block of memory.
+
+---
+
+## Prototype
+
+```void *calloc(size_t count, size_t size);```
 
 ---
 
@@ -943,6 +1002,8 @@ in memory terms, every byte is set to ```0x00```.
 
 ## Example
 
+```void *calloc(size_t count, size_t size);```
+
 ```
 int *numbers = calloc(5, sizeof(int));
 
@@ -963,6 +1024,12 @@ free(numbers);
 ```ft_substr()``` extracts a substring from a given string, starting at a specific index and copying up to a given length.
 
 It returns a **newly allocated string** that contains the portion from ```s[start]``` up to ```len``` characters or less, if the string ends before that.
+
+---
+
+## Prototype
+
+```char *ft_substr(char const *s, unsigned int start, size_t len);```
 
 ---
 
@@ -1011,8 +1078,6 @@ You're producing music:
 - Slicing strings in parsers or tokenizers.
 - Copying a region of interest into a new buffer.
 
-```char *ft_substr(char const *s, unsigned int start, size_t len);```
-
 ---
 
 ## Downsides of ft_substr()
@@ -1024,6 +1089,9 @@ You're producing music:
 ---
 
 ## Example
+
+
+```char *ft_substr(char const *s, unsigned int start, size_t len);```
 
 ```
 char *src = "space is the place";
@@ -1043,6 +1111,12 @@ free(cut);
 ```ft_strjoin()``` creates a **new string** by joining two strings together, placing ```s1``` first, then ```s2``` immediately after.
 
 It dynamically allocates memory for the result using ```malloc()``` and returns a pointer to the new combined string.
+
+---
+
+## Prototype
+
+```char *ft_strjoin(char const *s1, char const *s2);```
 
 ---
 
@@ -1092,8 +1166,6 @@ You don’t overwrite the originals. You build a brand new track with both parts
 - Building log entries or error messages dynamically.
 - Creating clean, heap-allocated strings without modifying inputs.
 
-```char *ft_strjoin(char const *s1, char const *s2);```
-
 ---
 
 ## Downsides of ft_strjoin()
@@ -1105,6 +1177,8 @@ You don’t overwrite the originals. You build a brand new track with both parts
 ---
 
 ## Example
+
+```char *ft_strjoin(char const *s1, char const *s2);```
 
 ```
 char *prefix = "Hello, ";
@@ -1188,6 +1262,8 @@ Imagine editing a film strip:
 ---
 
 ## Example
+
+```char *ft_strtrim(char const *s1, char const *set);```
 
 ```
 #include <stdio.h>
@@ -1326,6 +1402,8 @@ You have a large book containing multiple articles, separated by blank pages.
 ---
 
 ## Example
+
+```char **ft_split(char const *s, char c);```
 
 ```
 #include <stdio.h>
@@ -1503,9 +1581,7 @@ It returns a newly allocated string containing the results of each transformatio
 
 ## Prototype
 
-```
-char *ft_strmapi(char const *s, char (*f)(unsigned int, char));
-```
+```char *ft_strmapi(char const *s, char (*f)(unsigned int, char));```
 
 ---
 
@@ -1572,6 +1648,9 @@ Imagine a synth processing a sequence of notes:
 
 ## Example
 
+
+```char *ft_strmapi(char const *s, char (*f)(unsigned int, char));```
+
 ```
 #include <stdio.h>
 #include <ctype.h>
@@ -1608,9 +1687,9 @@ It’s useful when you want to apply transformations directly to an existing str
 
 ## Prototype
 
-```
-void ft_striteri(char *s, void (*f)(unsigned int, char *));
-```
+```void ft_striteri(char *s, void (*f)(unsigned int, char *));```
+
+---
 
 ## How to Visualize It
 
@@ -1668,6 +1747,8 @@ You're controlling an RGB LED strip using an Arduino.
 - Offers no way to stop midway. The function `f()` is applied to all characters.
 
 ## Example
+
+```void ft_striteri(char *s, void (*f)(unsigned int, char *));```
 
 ```
 #include <stdio.h>
