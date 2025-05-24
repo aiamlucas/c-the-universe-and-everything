@@ -1396,7 +1396,7 @@ You have a large book containing multiple articles, separated by blank pages.
 
 - Memory-heavy: allocates a new string for every chunk.
 - Needs careful cleanup if any ```malloc()``` call fails.
-- Doesn’t handle escaped delimiters or nested structures — just raw split logic.
+- Doesn’t handle escaped delimiters or nested structures, just raw split logic.
 - Performs just a simple split at every delimiter. It doesn't recognize escape characters or groupings like quotes or parentheses.
 
 ---
@@ -1537,12 +1537,12 @@ To keep your ```ft_split()``` readable and modular, consider writing small helpe
 
 Some examples:
 
-- ```count_words(const char *s, char c)```  
-  → returns how many substrings you'll need (Step 1)
-- ```word_length(const char *s, char c)```  
-  → returns the length of the next word starting at position ```s``` (Step 2)
-- ```free_split(char **array)```  
-  → frees all memory if an allocation fails (Step 5)
+- ```int count_words(const char *s, char c);```  
+  → Scans the string and returns how many substrings (words) will be created.
+- ```int word_length(const char *s, char c);```  
+  → Starting at ```s```, returns the length of the next word (number of characters until the next delimiter or ```\0```).
+- ```void free_split(char **array);```  
+  → Frees all memory previously allocated for the array of substrings in case of failure or cleanup.
 
 Using these helpers makes your main ```ft_split()``` logic easier to write and debug.
 
