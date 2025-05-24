@@ -857,7 +857,7 @@ When you call ```strdup()```, it allocates space for a new copy:
 
 ```
 Duplicate: [s] [p] [a] [c] [e] [ ] [i] [s] [\0]  
-Pointer:                           ↑
+Pointer:                            ↑
 ```
 
 You now have two separate pointers, pointing to the same content but living in different memory.
