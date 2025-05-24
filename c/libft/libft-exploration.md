@@ -116,9 +116,9 @@ You don’t read them, interpret them or check the titles, you just move the phy
 
 ---
 
-```void *memcpy(void *dest, const void *src, size_t n);```
-
 ## Example
+
+```// Prototype: void *memcpy(void *dest, const void *src, size_t n);```
 
 ```
 char src[] = "launch";
@@ -207,9 +207,9 @@ You have a digital display of 1,000 LEDs still showing the last frame from a pre
 
 ---
 
-```void *memset(void *s, int c, size_t n);```
-
 ## Example
+
+```// Prototype: void *memset(void *s, int c, size_t n);```
 
 ```
 #include <stdio.h>
@@ -315,9 +315,9 @@ Think of it like scanning a row of lockers for a specific item:
 
 ---
 
-```void *memchr(const void *s, int c, size_t n);```
-
 ## Example
+
+```// Prototype: void *memchr(const void *s, int c, size_t n);```
 
 ```
 char data[] = "space is the place";
@@ -409,9 +409,9 @@ Just like ```memcmp()```, it doesn’t try to interpret the meaning of the data.
 
 ---
 
-```int memcmp(const void *s1, const void *s2, size_t n);```
-
 ## Example
+
+```// Prototype: int memcmp(const void *s1, const void *s2, size_t n);```
 
 ```
 char a[] = {1, 2, 3, 4};
@@ -526,9 +526,10 @@ You need to shift a section of the spectrum slightly forward to realign it with 
 
 ---
 
-```void *memmove(void *dest, const void *src, size_t n);```
-
 ## Example
+
+
+```// Prototype: void *memmove(void *dest, const void *src, size_t n);```
 
 ```
 #include <stdio.h>
@@ -618,8 +619,6 @@ But if it begins too late and gets cut off, it goes unnoticed.
 - Working with untrusted input where length matters more than contents.
 - Parsing protocols, headers or chunks of structured text without risking memory violations.
 
-``` char *strnstr(const char *haystack, const char *needle, size_t len); ```
-
 ---
 
 ## Downsides of strnstr()
@@ -631,9 +630,9 @@ But if it begins too late and gets cut off, it goes unnoticed.
 
 ---
 
-```char *strnstr(const char *haystack, const char *needle, size_t len);```
-
 ## Example
+
+```// Prototype: char *strnstr(const char *haystack, const char *needle, size_t len); ```
 
 ```
 const char *haystack = "launch sequence initiated";
@@ -737,9 +736,9 @@ Was it ```"I love art"```? ```"I love sun"```? ```"I love cat"```? Or even ```"I
 
 ---
 
-```size_t strlcat(char *dst, const char *src, size_t size);```
-
 ## Example
+
+```// Prototype: size_t strlcat(char *dst, const char *src, size_t size);```
 
 ```
 char buffer[16] = "space ";
@@ -814,17 +813,18 @@ You're reading a book looking for the last mention of a character's name.
 
 ---
 
-```char *strrchr(const char *s, int c);```
-
 ## Example
+
+```// Prototype: char *strrchr(const char *s, int c);```
+
 ```
 const char *text = "space is the place";
 char *last_e = strrchr(text, 'e');
 
 // last_e now points to &text[17] → the last 'e'
 printf("%s\n", last_e); // prints: "e"
-```
 
+```
 # strdup()
 
 ## Overview
@@ -906,7 +906,7 @@ That’s what ```strdup()``` gives you: a fresh copy to do whatever you want wit
 
 ## Example
 
-```char *strdup(const char *s);```
+```// Prototype: char *strdup(const char *s);```
 
 ```
 char *original = "launch";
@@ -1002,7 +1002,7 @@ in memory terms, every byte is set to ```0x00```.
 
 ## Example
 
-```void *calloc(size_t count, size_t size);```
+```// Prototype: void *calloc(size_t count, size_t size);```
 
 ```
 int *numbers = calloc(5, sizeof(int));
@@ -1091,7 +1091,7 @@ You're producing music:
 ## Example
 
 
-```char *ft_substr(char const *s, unsigned int start, size_t len);```
+```// Prototype: char *ft_substr(char const *s, unsigned int start, size_t len);```
 
 ```
 char *src = "space is the place";
@@ -1178,7 +1178,7 @@ You don’t overwrite the originals. You build a brand new track with both parts
 
 ## Example
 
-```char *ft_strjoin(char const *s1, char const *s2);```
+```// Prototype: char *ft_strjoin(char const *s1, char const *s2);```
 
 ```
 char *prefix = "Hello, ";
@@ -1263,7 +1263,7 @@ Imagine editing a film strip:
 
 ## Example
 
-```char *ft_strtrim(char const *s1, char const *set);```
+```// Prototype: char *ft_strtrim(char const *s1, char const *set);```
 
 ```
 #include <stdio.h>
@@ -1403,7 +1403,7 @@ You have a large book containing multiple articles, separated by blank pages.
 
 ## Example
 
-```char **ft_split(char const *s, char c);```
+```// Prototype: char **ft_split(char const *s, char c);```
 
 ```
 #include <stdio.h>
@@ -1649,7 +1649,7 @@ Imagine a synth processing a sequence of notes:
 ## Example
 
 
-```char *ft_strmapi(char const *s, char (*f)(unsigned int, char));```
+```// Prototype: char *ft_strmapi(char const *s, char (*f)(unsigned int, char));```
 
 ```
 #include <stdio.h>
@@ -1748,7 +1748,7 @@ You're controlling an RGB LED strip using an Arduino.
 
 ## Example
 
-```void ft_striteri(char *s, void (*f)(unsigned int, char *));```
+```// Prototype: void ft_striteri(char *s, void (*f)(unsigned int, char *));```
 
 ```
 #include <stdio.h>
