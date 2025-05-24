@@ -20,6 +20,7 @@ Brought into being at t = 0, via Makefile.
 
 ## Table of Contents
 - [memcpy()](#memcpy)
+- [memset()](#memset)
 - [memchr()](#memchr)
 - [memcmp(()](#memcmp)
 - [memmove()](#memmove)
@@ -34,7 +35,6 @@ Brought into being at t = 0, via Makefile.
 - [ft_split()](#ft_split)
 - [ft_strmapi()](#ft_strmapi)
 - [ft_striteri()](#ft_striteri)
-
 
 
 # memcpy()
@@ -121,6 +121,102 @@ char dest[10];
 memcpy(dest, src, 6);
 
 // dest now contains: "launch"
+```
+
+# memset()
+
+## Overview
+
+```memset()``` is a C standard library function used to fill a block of memory with a single byte value.
+
+It’s commonly used to initialize arrays, buffers, or structs to a known value, typically ```0```.
+
+---
+
+## How to Visualize It
+
+Picture a row of memory boxes:
+
+```
+[?] [?] [?] [?] [?] [?] [?] [?]
+```
+
+You call:
+
+```memset(ptr, 'A', 5)```
+
+Result:
+
+```
+[A] [A] [A] [A] [A] [?] [?] [?]
+```
+
+The first 5 bytes are now filled with ```'A'```. The rest remain untouched.
+
+---
+
+## Key Concepts
+
+- ```memset(ptr, value, n)``` fills the first ```n``` bytes at ```ptr``` with ```value``` (as an ```unsigned char```).
+- Operates on raw memory, it doesn't know or care about the data type.
+- Commonly used for:
+  - Initializing buffers to zero
+  - Setting flags or padding to known values
+  - Wiping memory before reuse
+
+---
+
+## Analogy
+
+You have a digital display of 1,000 LEDs still showing the last frame from a previous configuration.
+
+- The LED grid is memory.
+- The outdated display is leftover data.
+- ```memset()``` sends a signal to clear the frame.
+- All LEDs are instantly reset to the same value (like a full black or a solid blue).
+- The result is a clean, uniform state and ready for the next update.
+
+---
+
+## When To Use It?
+
+- Zeroing out arrays or structs before use.
+- Resetting memory after free (optional, for safety or debugging).
+- Creating fixed patterns in buffers (e.g., ```0xFF``` for testing).
+- Filling memory with ```\0``` to prepare for string operations.
+
+---
+
+## Downsides of memset()
+
+- Only sets memory at the byte level, it's not safe for assigning typed values.
+- If used incorrectly (e.g., wrong size) can lead to data corruption.
+- Not suitable for setting values in arrays of types larger than ```char``` (e.g., ```int arr[10]```), unless you’re just zeroing.
+
+---
+
+## Example
+
+```
+#include <stdio.h>
+#include <string.h>
+
+int main(void)
+{
+    int numbers[5];
+    int i = 0;
+
+    // Set all bytes in the array to 0
+    memset(numbers, 0, sizeof(numbers));
+
+    while (i < 5)
+    {
+        printf("%d ", numbers[i]);  // Output: 0 0 0 0 0
+        i++;
+    }
+
+    return 0;
+}
 ```
 
 # memchr()
