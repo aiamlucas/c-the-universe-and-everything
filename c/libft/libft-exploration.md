@@ -43,7 +43,7 @@ Brought into being at t = 0, via Makefile.
 
 ```memcpy()``` is a fundamental C function used to **copy raw bytes** from one memory location to another.
 
-It doesn't care about strings, null terminators, or data types. Only the ***bytes*** matter.  
+It doesn't care about strings, null terminators or data types. Only the ***bytes*** matter.  
 It copies exactly ```n``` bytes from ```src``` to ```dest```.
 
 ---
