@@ -27,7 +27,9 @@ Brought into being at t = 0, via Makefile.
 - [strlcpy()](#strlcpy)
 - [strnstr()](#strnstr)
 - [strlcat()](#strlcat)
+- [strchr()](#strchr)
 - [strrchr()](#strrchr)
+- [strncmp()](#strncmp)
 - [strdup()](#strdup)
 - [calloc()](#calloc)
 - [ft_substr()](#ft_substr)
@@ -858,6 +860,95 @@ size_t result = strlcat(buffer, "is the place", 16);
 // result is 19 — full length it tried to create
 ```
 
+# strchr()
+
+## Overview
+
+```strchr()``` searches for the **first occurrence** of a character in a string.  
+It returns a pointer to the first matching character or ```NULL``` if not found.
+
+Unlike ```memchr()```, it works only on **null-terminated strings** and treats ```\0``` as a valid character to search for.
+
+---
+
+## Prototype
+
+```char *strchr(const char *s, int c);```
+
+---
+
+## How to Visualize It
+
+Imagine a string laid out like this:
+
+```
+[s] [p] [a] [c] [e] [ ] [i] [s] [ ] [t] [h] [e] [\0]
+```
+
+You search for ```'e'```.  
+```strchr()``` returns a pointer to the **first** ```'e'```, at index 4.
+
+---
+
+## Key Concepts
+
+- Scans a string from beginning to end.
+- Returns a pointer to the first occurrence of the character ```c```.
+- If the character isn’t found, returns ```NULL```.
+- If ```c == '\0'```, it returns a pointer to the string's null terminator.
+- Operates only on strings (null-terminated arrays of ```char```).
+
+---
+
+## Analogy
+
+You're scanning a line of books on a shelf, looking for the first one with a red cover:
+
+- The string is the shelf.
+- The target character is the red cover.
+- ```strchr()``` stops and points to the **first** match it finds.
+
+---
+
+## When To Use It?
+
+- Finding the first appearance of a character in a string.
+- Parsing strings — e.g., search for ':' or '=' in key-value pairs.
+- Detecting newlines, delimiters, or control characters.
+- Checking if a character exists before doing further logic.
+
+---
+
+## Downsides of strchr()
+
+- Returns only the **first** match. Use ```strrchr()``` for the last match.
+- Not suited for scanning binary data (must be null-terminated).
+- Won’t work correctly if the string isn't properly terminated with ```\0```.
+
+---
+
+## Example
+
+```// Prototype: char *strchr(const char *s, int c);```
+
+```
+#include <stdio.h>
+#include <string.h>
+
+int main(void)
+{
+    const char *text = "space is the place";
+    char *first_e = strchr(text, 'e');
+
+    if (first_e)
+        printf("First 'e' found at: %ld\n", first_e - text);
+    else
+        printf("'e' not found\n");
+
+    return 0;
+}
+```
+
 # strrchr()
 
 ## Overview
@@ -935,6 +1026,128 @@ char *last_e = strrchr(text, 'e');
 printf("%s\n", last_e); // prints: "e"
 
 ```
+
+# strncmp()
+
+## Overview
+
+```strncmp()``` compares up to ```n``` characters of two strings.  
+It checks if the strings are equal, or which one is greater (**byte by byte**, using ASCII values).
+
+It stops comparing when it finds a difference, hits a null terminator, or reaches ```n```.
+
+---
+
+## Prototype
+
+```int strncmp(const char *s1, const char *s2, size_t n);```
+
+---
+
+## Key Concepts
+
+- Returns:
+  - ```0``` if the strings are equal up to ```n``` characters
+  - A **positive** value if ```s1 > s2``` at the first mismatch
+  - A **negative** value if ```s1 < s2``` at the first mismatch
+- Comparison is **lexicographic**, based on ASCII
+- Safe for comparing substrings or prefixes
+- Stops at ```\0``` in either string
+- ```strncmp()``` is like ```memcmp()```, but for C-strings. It stops at ```\0``` or after ```n```, while ```memcmp()``` compares raw memory without regard for null terminators.
+
+---
+
+## How to Visualize It
+
+Imagine two strings laid out like:
+
+```
+s1: [s] [p] [a] [c] [e] [X]
+s2: [s] [p] [a] [c] [e] [Y]
+```
+
+If you call:
+
+```strncmp(s1, s2, 5)```
+
+It only checks the first 5 characters:
+
+```
+[s] = [s]
+[p] = [p]
+[a] = [a]
+[c] = [c]
+[e] = [e]
+```
+
+All equal → returns 0
+
+---
+
+If you call:
+
+```strncmp(s1, s2, 6)```
+
+It compares the sixth:
+
+```
+[X] < [Y] → returns negative
+```
+---
+
+## Analogy
+
+You’re scanning two barcodes side by side:
+
+- Start comparing the stripes from left to right.
+- You only check the first ```n``` segments.
+- If all match, you treat them as identical.
+- If one stripe is different, you immediately register which is “greater” or “less.”
+
+---
+
+## When To Use It?
+
+- Comparing the beginnings of strings
+- Sorting lexicographically up to a limit
+- Implementing custom ```strncmp()```-based logic in parsers or filters
+
+---
+
+## Downsides of strncmp()
+
+- Doesn’t tell you where the strings differ, only that they do
+- Can give unexpected results with signed char inputs unless explicitly cast
+- Stops on ```\0```, so not always suitable for binary data
+
+---
+
+## Example
+
+```
+// Prototype: int strncmp(const char *s1, const char *s2, size_t n);
+
+#include <stdio.h>
+#include <string.h>
+
+int main(void)
+{
+    const char *a = "spaceX";
+    const char *b = "spaceY";
+
+    int result = strncmp(a, b, 5);
+
+    if (result == 0)
+        printf("The first 5 characters are the same.\n");
+    else if (result < 0)
+        printf("\"%s\" is less than \"%s\" in the first 5 characters.\n", a, b);
+    else
+        printf("\"%s\" is greater than \"%s\" in the first 5 characters.\n", a, b);
+
+    return 0;
+}
+```
+
 # strdup()
 
 ## Overview
