@@ -8,6 +8,7 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 ### C
 
+- [Libft Bonus Linked Lists And Structs](c/libft/libft-bonus-linked-lists-and-structs.md)
 - [Libft Exploration](c/libft/libft-exploration.md)
 - [Pointers](c/pointers/pointers.md)
 - [Arrays](c/arrays/arrays.md)
