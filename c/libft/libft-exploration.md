@@ -1132,8 +1132,8 @@ You’re scanning two barcodes side by side:
 
 int main(void)
 {
-    const char *a = "spaceX";
-    const char *b = "spaceY";
+    const char *a = "spaceA";
+    const char *b = "spaceB";
 
     int result = strncmp(a, b, 5);
 
