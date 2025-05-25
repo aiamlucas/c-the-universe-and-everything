@@ -373,8 +373,8 @@ Libft defines its list nodes as:
 ```
 typedef struct s_list {
     void *content;
-    struct s_list *next;
-} t_list;
+    struct t_list *next;
+} s_list;
 ```
 
 #### Field Breakdown:
