@@ -12,14 +12,14 @@ It focuses on dynamic memory, data structures and how to build and manage **link
 - [Introduction to Data Structures](#introduction-to-data-structures)
 - [ft_lstnew()](#ft_lstnew)
 -- TO DO: Add more functions here
-- [ft_lstadd_front()]()
-- [ft_lstsize()]()
-- [ft_lstlast()]()
-- [ft_lstadd_back()]()
-- [ft_lstdelone()]()
-- [ft_lstclear()]()
-- [ft_lstiter()]()
-- [ft_lstmap()]()
+- [ft_lstadd_front()]() - TO DO
+- [ft_lstsize()]() - TO DO
+- [ft_lstlast()]() - TO DO
+- [ft_lstadd_back()]()	- TO DO
+- [ft_lstdelone()]()	- TO DO
+- [ft_lstclear()]() - TO DO
+- [ft_lstiter()]() - TO DO
+- [ft_lstmap()]() - TO DO
 
 ---
 
