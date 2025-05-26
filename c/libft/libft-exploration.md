@@ -451,53 +451,69 @@ It copies ```n``` bytes from ```src``` to ```dest``` and guarantees that no data
 
 ## How to Visualize It
 
-You have this memory block:
+Imagine this scenario:
+
+You have a string in memory:
 
 ```
-Index:   0   1   2   3   4   5   6   7  
-Memory: [A] [B] [C] [D] [E] [F] [G] [H]
+char str[] = "galaxy hitchhiker";
 ```
 
-Now you call:  
-```memmove(&mem[2], &mem[0], 4);```  
-→ Copy 4 bytes from index 0 to index 2
+Now you want to remove "galaxy " and shift "hitchhiker" to the front in place, without creating a new buffer.
 
-The memory regions overlap:
-You're trying to copy ```[A][B][C][D]``` onto the area starting at ```mem[2]```, which already contains ```C, D, E...```.
-
-If you used ```memcpy()```, it would copy left to right, which could overwrite data before it's been moved:
-
-Step-by-step with ```memcpy()```:  
+Before calling ```memmove()```:
 
 ```
-mem[2] = mem[0] → 'A'  
-mem[3] = mem[1] → 'B'  
-mem[4] = mem[2] → now mem[2] is 'A'  
-mem[5] = mem[3] → now mem[3] is 'B'  
+Index:   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16
+str:    [g] [a] [l] [a] [x] [y] [ ] [h] [i] [t] [c] [h] [h] [i] [k] [e] [r]
+                                     ↑
+We want to copy the substring "hitchhiker" (starting at index 7) to the beginning of the string (index 0).
 ```
 
-Result (corrupted):  
+You do:
 
 ```
-[A] [B] [A] [B] [C?] [D?] ...
+memmove(&str[0], &str[7], strlen(&str[7]) + 1);
 ```
 
-```memmove()``` avoids this by copying backward:
+Note: ```+1``` copies the null terminator '\0'.
 
-Step-by-step with ```memmove()```:  
+---
 
+Why not use ```memcpy()```?
+
+Because ```memcpy()``` copies from left to right — it would overwrite the 'h', 'i', 't' before it had a chance to read them.
+
+---
+
+```memmove()``` handles this safely by copying right to left (backward):
+
+Step-by-step (safe):
 ```
-mem[5] = mem[3] → 'D'  
-mem[4] = mem[2] → 'C'  
-mem[3] = mem[1] → 'B'  
-mem[2] = mem[0] → 'A'  
+mem[10] = mem[17] → '\0'
+mem[9]  = mem[16] → 'r'
+mem[8]  = mem[15] → 'e'
+mem[7]  = mem[14] → 'k'
+mem[6]  = mem[13] → 'i'
+mem[5]  = mem[12] → 'h'
+mem[4]  = mem[11] → 'h'
+mem[3]  = mem[10] → 'c'
+mem[2]  = mem[9]  → 't'
+mem[1]  = mem[8]  → 'i'
+mem[0]  = mem[7]  → 'h'
 ```
 
-Result (correct):  
+---
 
+After memmove:
 ```
-[A] [B] [A] [B] [C] [D] ...
+Index:   0   1   2   3   4   5   6   7   8   9  10 ...
+str:    [h] [i] [t] [c] [h] [h] [i] [k] [e] [r] [\0]
+String: "hitchhiker"
 ```
+
+Result: "hitchhiker" was moved safely, even though it overlapped with the original location.
+
 ---
 
 ## Analogy
