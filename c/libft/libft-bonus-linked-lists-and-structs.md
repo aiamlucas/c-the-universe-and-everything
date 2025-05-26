@@ -551,3 +551,112 @@ Output:
 ```
 Node content: The answer is 42
 ```
+
+# ft_lstadd_front()
+
+## Overview
+
+```ft_lstadd_front()``` adds a new node to the **front** of a linked list.
+
+It updates the pointer to the head of the list (`*lst`) so that it now points to `new`, and `new->next` points to the previous first node.
+
+This function is essential when building a list in reverse or when you want to add items to the front efficiently.
+
+---
+
+## Prototype
+
+```void ft_lstadd_front(t_list **lst, t_list *new);```
+
+---
+
+## How to Visualize It
+
+Suppose you already have this list:
+
+```
+[ "Planet" ] → [ "Asteroid" ] → NULL
+```
+
+And a new node:
+
+```
+[ "Galaxy" ] → NULL
+```
+
+After calling:
+
+```ft_lstadd_front(&list, new);```
+
+You get:
+
+```
+[ "Galaxy" ] → [ "Planet" ] → [ "Asteroid" ] → NULL
+```
+
+---
+
+## Key Concepts
+
+- `lst` is a **pointer to the head** pointer of the list.
+- `new` is the node you want to insert at the front.
+- The function links `new->next` to the current head.
+- Then it updates the head to point to `new`.
+- No return value — changes happen through pointer manipulation.
+
+---
+
+## Analogy
+
+Think of your reading habit. Each time you get a new book,
+you place it on top of your "to-read" stack.
+
+- `new` is the most recent book.
+- `lst` is the top of your stack (the current head of the list).
+- You don’t shift the whole stack — just place the new book on top.
+- The rest of the stack remains below, untouched.
+
+---
+
+## When To Use It?
+
+- To prepend data to a list (stack behavior).
+- To maintain newest-first order.
+- When constructing a list by reading inputs in reverse.
+
+---
+
+## Downsides of ft_lstadd_front()
+
+- You must manage memory: ensure `new` is properly allocated.
+- If the original list is `NULL`, this function sets the list to the new node.
+
+---
+
+## Example
+
+```// Prototype: void ft_lstadd_front(t_list **lst, t_list *new);```
+
+```
+#include "libft.h"
+#include <stdio.h>
+
+int main(void)
+{
+    t_list *list = ft_lstnew("second");
+    t_list *first = ft_lstnew("first");
+
+    ft_lstadd_front(&list, first);
+
+    printf("Head content: %s\n", (char *)list->content);
+    printf("Next content: %s\n", (char *)list->next->content);
+
+    return 0;
+}
+```
+
+Output:
+```
+Head content: first
+Next content: second
+```
