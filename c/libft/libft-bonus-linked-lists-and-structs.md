@@ -11,7 +11,7 @@ It focuses on dynamic memory, data structures and how to build and manage **link
 
 - [Introduction to Data Structures](#introduction-to-data-structures)
 - [ft_lstnew()](#ft_lstnew)
-- [ft_lstadd_front()]() - TO DO
+- [ft_lstadd_front()](#ft_lstadd_front)
 - [ft_lstsize()]() - TO DO
 - [ft_lstlast()]() - TO DO
 - [ft_lstadd_back()]()	- TO DO
