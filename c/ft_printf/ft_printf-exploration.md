@@ -7,16 +7,15 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [What Is --- in C](#what-is---in-c)
-- [Variadic Functions and stdarg.h](#variadic-functions-and-stdargh)
-- [Preprocessor Macros and Directives](#preprocessor-macros-and-directives)
+- [Variadic Functions and the Ellipsis ---](#variadic-functions-and-the-ellipsis-)
+- [Macros and Preprocessor Directives](#macros-and-preprocessor-directives)
 - [Parsing and Format Strings](#parsing-and-format-strings)
 - [Intro to Number Bases](#intro-to-number-bases)
 - [Octal Hex Binary – Visualizing Other Bases](#octal-hex-binary--visualizing-other-bases)
 - [Base Conversion Logic](#base-conversion-logic)
 - [State Tracking and Recursion](#state-tracking-and-recursion)
 - [Unit Testing Basics](#unit-testing-basics)
- 
+
 ---
 
 ## Overview
