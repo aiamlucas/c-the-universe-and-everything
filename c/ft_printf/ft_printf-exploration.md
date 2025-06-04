@@ -149,7 +149,7 @@ These directives are especially powerful for:
 
 ### What Is the Preprocessor?
 
-The preprocessor is a tool that runs **before compilation** and processes commands that begin with ``` # ```. It performs tasks like:
+The preprocessor is a tool that runs **before compilation** and processes commands that begin with ```# ```. It performs tasks like:
 
 - Inserting code from other files
 - Replacing macro names with their definitions
@@ -162,7 +162,7 @@ These commands are called **preprocessor directives**.
 
 ### What Is a Macro?
 
-A **macro** is a named text substitution, defined using ``` #define ```. The preprocessor replaces every occurrence of the macro name with its value or code snippet **before** the compiler compiles it.
+A **macro** is a named text substitution, defined using ```#define ```. The preprocessor replaces every occurrence of the macro name with its value or code snippet **before** the compiler compiles it.
 
 ---
 
@@ -204,20 +204,20 @@ These don't end in semicolons because they are **not C statements**. They are ha
 
 | Directive           | Description                                                             |
 |---------------------|-------------------------------------------------------------------------|
-| ```#define```      | Define macros or constants                                              |
-| ```#undef```       | Undefine a macro                                                        |
-| ```#include```     | Include content from a file (e.g., headers)                             |
-| ```#if```          | Start a conditional compilation block                                   |
-| ```#elif```        | Else-if condition within a ``` #if``` block                             |
-| ```#else```        | Alternate block if previous ``` #if``` or ``` #elif``` fails            |
-| ```#endif```       | End a conditional compilation block                                     |
-| ```#ifdef```       | Compile code only if macro is defined                                   |
-| ```#ifndef```      | Compile code only if macro is **not** defined                           |
-| ```#pragma```      | Send special instructions to the compiler (optional, compiler-specific) |
+| ```#define```      | Define macros or constants                                               |
+| ```#undef```       | Undefine a macro                                                         |
+| ```#include```     | Include content from a file (e.g., headers)                              |
+| ```#if```          | Start a conditional compilation block                                    |
+| ```#elif```        | Else-if condition within a ```#if``` block                               |
+| ```#else```        | Alternate block if previous ```#if``` or ```#elif``` fails               |
+| ```#endif```       | End a conditional compilation block                                      |
+| ```#ifdef```       | Compile code only if macro is defined                                    |
+| ```#ifndef```      | Compile code only if macro is **not** defined                            |
+| ```#pragma```      | Send special instructions to the compiler (optional, compiler-specific)  |
 
 ---
 
-### Example: Header Guards Using ``` #ifndef ```
+### Example: Header Guards Using ```#ifndef ```
 
 To avoid including the same header file multiple times (which causes errors), we wrap headers in guards:
 
@@ -251,7 +251,7 @@ You can selectively compile code depending on macros:
 Useful for enabling debugging or platform-specific code.
 
 
-### Using ``` #if 0``` and ``` #if 1``` for Temporarily Disabling or Enabling Code
+### Using ```#if 0``` and ```#if 1``` for Temporarily Disabling or Enabling Code
 
 Sometimes you want to **quickly disable** a block of code during development without deleting or commenting it out. Using ``` #if 0``` is a handy way to do this:
 
@@ -262,7 +262,7 @@ Sometimes you want to **quickly disable** a block of code during development wit
 #endif
 ```
 
-Conversely, using ``` #if 1``` explicitly **includes** the code:
+Conversely, using ```#if 1``` explicitly **includes** the code:
 
 ```
 #if 1
@@ -271,11 +271,11 @@ Conversely, using ``` #if 1``` explicitly **includes** the code:
 #endif
 ```
 
-**Why use ``` #if 0``` instead of comments?**
+**Why use ```#if 0``` instead of comments?**
 
-- The preprocessor completely removes code inside ``` #if 0``` blocks, so it’s not even seen by the compiler.
-- You can nest ``` #if 0``` blocks inside other preprocessor conditions or multi-line comments safely.
-- Switching between enabling and disabling code is as simple as changing ``` 0``` to ``` 1``` or vice versa.
+- The preprocessor completely removes code inside ```#if 0``` blocks, so it’s not even seen by the compiler.
+- You can nest ```#if 0``` blocks inside other preprocessor conditions or multi-line comments safely.
+- Switching between enabling and disabling code is as simple as changing ```0``` to ```1``` or vice versa.
 
 ---
 
@@ -294,7 +294,7 @@ Use function-like macros only for simple tasks. For complex behavior, prefer `in
 
 ### Macros in Variadic Functions
 
-The standard header ``` <stdarg.h> ``` uses macros to help work with variable-length arguments (the ``` ... ``` syntax).
+The standard header ```<stdarg.h>``` uses macros to help work with variable-length arguments (the ```...``` syntax).
 
 ```
 #include <stdarg.h>
@@ -317,9 +317,9 @@ These macros abstract the system-dependent logic for pulling arguments.
 
 ---
 
-### Advanced: ``` #pragma ```
+### Advanced: ```#pragma```
 
-The ``` #pragma ``` directive provides **compiler-specific instructions**, such as disabling warnings:
+The ```#pragma``` directive provides **compiler-specific instructions**, such as disabling warnings:
 
 ```
 #pragma warning(disable : 4996)
@@ -343,17 +343,17 @@ Not portable across all compilers, but useful in large codebases.
    ```
 
 3. **Side effects in macros**  
-   Macros like ``` #define DOUBLE(x) ((x) + (x)) ``` will evaluate `x` multiple times, causing bugs if `x++` is passed.
+   Macros like ```#define DOUBLE(x) ((x) + (x))``` will evaluate `x` multiple times, causing bugs if `x++` is passed.
 
 ---
 
 ### Summary
 
-- Preprocessor directives begin with ``` # ``` and are executed **before compilation**.
+- Preprocessor directives begin with ```#``` and are executed **before compilation**.
 - Macros are **text substitutions** that can act like constants or inline functions.
 - Use macros to improve flexibility, portability, and reduce repetition.
 - Use care: macros lack type checking and can introduce subtle bugs.
-- ``` <stdarg.h> ``` uses preprocessor macros to implement variadic functions like ``` printf() ```.
+- ```<stdarg.h>``` uses preprocessor macros to implement variadic functions like ```printf()```.
 - Preprocessor directives are essential for large-scale C programs, especially for modularity, debugging, and conditional builds.
 
 ---
