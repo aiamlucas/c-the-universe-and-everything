@@ -204,16 +204,16 @@ These don't end in semicolons because they are **not C statements**. They are ha
 
 | Directive           | Description                                                             |
 |---------------------|-------------------------------------------------------------------------|
-| ``` #define```      | Define macros or constants                                              |
-| ``` #undef```       | Undefine a macro                                                        |
-| ``` #include```     | Include content from a file (e.g., headers)                             |
-| ``` #if```          | Start a conditional compilation block                                   |
-| ``` #elif```        | Else-if condition within a ``` #if``` block                             |
-| ``` #else```        | Alternate block if previous ``` #if``` or ``` #elif``` fails            |
-| ``` #endif```       | End a conditional compilation block                                     |
-| ``` #ifdef```       | Compile code only if macro is defined                                   |
-| ``` #ifndef```      | Compile code only if macro is **not** defined                           |
-| ``` #pragma```      | Send special instructions to the compiler (optional, compiler-specific) |
+| ```#define```      | Define macros or constants                                              |
+| ```#undef```       | Undefine a macro                                                        |
+| ```#include```     | Include content from a file (e.g., headers)                             |
+| ```#if```          | Start a conditional compilation block                                   |
+| ```#elif```        | Else-if condition within a ``` #if``` block                             |
+| ```#else```        | Alternate block if previous ``` #if``` or ``` #elif``` fails            |
+| ```#endif```       | End a conditional compilation block                                     |
+| ```#ifdef```       | Compile code only if macro is defined                                   |
+| ```#ifndef```      | Compile code only if macro is **not** defined                           |
+| ```#pragma```      | Send special instructions to the compiler (optional, compiler-specific) |
 
 ---
 
