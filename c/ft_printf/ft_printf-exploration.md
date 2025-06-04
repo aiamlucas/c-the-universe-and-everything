@@ -59,6 +59,10 @@ You’ve seen this in action with functions like ```printf()``` or ```exit()``` 
 
 This is enabled by the ellipsis: ```...```
 
+When you use ```...``` in a function declaration, you're telling the compiler:
+
+    "This function can accept a variable number of arguments, starting after the last named parameter."
+
 ---
 
 ### Example
@@ -67,7 +71,7 @@ This is enabled by the ellipsis: ```...```
 #include <stdarg.h>
 #include <stdio.h>
 
-void log_values(const char *label, int count, ...)
+void log_values(const char *label, int count, ...) // 'count' is the last named argument; it tells how many additional arguments follow
 {
     va_list args;                  // Declare a variable to hold the argument list
     va_start(args, count);        // Initialize args to retrieve arguments after 'count'
@@ -131,14 +135,34 @@ In your own ```ft_printf()```, you’ll need to:
 
 ## Macros and Preprocessor Directives
 
-In C, macros and preprocessor directives are instructions that run **before compilation**. They don’t produce code by themselves, but **transform your source** before the compiler sees it.
+In C, **preprocessor directives** are special instructions that are handled by the **preprocessor** before actual compilation begins. They modify your code or environment **before the compiler sees it**.
+
+These directives are especially powerful for:
+
+- Including other files
+- Creating constants
+- Writing function-like macros
+- Handling conditional compilation
+- Supporting platform-specific or debug code
+
+---
+
+### What Is the Preprocessor?
+
+The preprocessor is a tool that runs **before compilation** and processes commands that begin with ``` # ```. It performs tasks like:
+
+- Inserting code from other files
+- Replacing macro names with their definitions
+- Removing or including code sections based on conditions
+- Preparing the code to be compiled
+
+These commands are called **preprocessor directives**.
 
 ---
 
 ### What Is a Macro?
 
-A macro is a **code snippet with a name**, defined using ```#define```.  
-When the preprocessor sees that name, it **replaces it with the code** it represents.
+A **macro** is a named text substitution, defined using ``` #define ```. The preprocessor replaces every occurrence of the macro name with its value or code snippet **before** the compiler compiles it.
 
 ---
 
@@ -154,7 +178,7 @@ int main(void)
 }
 ```
 
-Macros can make code easier to read and update. If you change PI, the whole program updates.
+This makes it easy to update constants across your code by changing them in one place.
 
 ---
 
@@ -165,48 +189,174 @@ Macros can make code easier to read and update. If you change PI, the whole prog
 
 int main(void)
 {
-    int result = SQUARE(3 + 1); // becomes ((3 + 1) * (3 + 1)) → 16
+    int result = SQUARE(3 + 1);  // becomes ((3 + 1) * (3 + 1)) → 16
     return 0;
 }
 ```
 
-Always wrap arguments and the whole macro to avoid bugs with operator precedence.
+Always wrap macro parameters and the entire body in parentheses to avoid **operator precedence** bugs.
 
 ---
 
-### Preprocessor Directives
+### Preprocessor Directives: Complete List
 
-Directives are commands to the preprocessor. They **don’t end with semicolons**.
+These don't end in semicolons because they are **not C statements**. They are handled during preprocessing.
 
-- ```#define``` → define macros  
-- ```#include``` → add code from another file  
-- ```#ifndef / #define / #endif``` → conditional compilation (e.g., header guards)
+| Directive           | Description                                                             |
+|---------------------|-------------------------------------------------------------------------|
+| ``` #define```      | Define macros or constants                                              |
+| ``` #undef```       | Undefine a macro                                                        |
+| ``` #include```     | Include content from a file (e.g., headers)                             |
+| ``` #if```          | Start a conditional compilation block                                   |
+| ``` #elif```        | Else-if condition within a ``` #if``` block                             |
+| ``` #else```        | Alternate block if previous ``` #if``` or ``` #elif``` fails            |
+| ``` #endif```       | End a conditional compilation block                                     |
+| ``` #ifdef```       | Compile code only if macro is defined                                   |
+| ``` #ifndef```      | Compile code only if macro is **not** defined                           |
+| ``` #pragma```      | Send special instructions to the compiler (optional, compiler-specific) |
+
+---
+
+### Example: Header Guards Using ``` #ifndef ```
+
+To avoid including the same header file multiple times (which causes errors), we wrap headers in guards:
+
+```
+#ifndef MY_HEADER_H
+#define MY_HEADER_H
+
+void do_something(void);
+
+#endif
+```
+
+This ensures the file is included only once per compilation unit.
+
+---
+
+### Example: Conditional Compilation
+
+You can selectively compile code depending on macros:
+
+```
+#define DEBUG
+
+#if defined(DEBUG)
+    printf("Debug mode is enabled\n");
+#else
+    printf("Release mode\n");
+#endif
+```
+
+Useful for enabling debugging or platform-specific code.
+
+
+### Using ``` #if 0``` and ``` #if 1``` for Temporarily Disabling or Enabling Code
+
+Sometimes you want to **quickly disable** a block of code during development without deleting or commenting it out. Using ``` #if 0``` is a handy way to do this:
+
+```
+#if 0
+    // This code is ignored by the compiler and won't be compiled
+    printf("This will NOT run.\n");
+#endif
+```
+
+Conversely, using ``` #if 1``` explicitly **includes** the code:
+
+```
+#if 1
+    // This code is compiled and executed
+    printf("This will run.\n");
+#endif
+```
+
+**Why use ``` #if 0``` instead of comments?**
+
+- The preprocessor completely removes code inside ``` #if 0``` blocks, so it’s not even seen by the compiler.
+- You can nest ``` #if 0``` blocks inside other preprocessor conditions or multi-line comments safely.
+- Switching between enabling and disabling code is as simple as changing ``` 0``` to ``` 1``` or vice versa.
+
+---
+
+### Function-like Macros vs. Functions
+
+| Feature                | Macro                         | Function                 |
+|------------------------|-------------------------------|--------------------------|
+| Inline substitution    | Yes                           | No                       |
+| Type checking          | No                            | Yes                      |
+| Runtime overhead       | None (precompiled)            | Some (call overhead)     |
+| Side-effect safety     | Risky if not careful          | Safe                     |
+
+Use function-like macros only for simple tasks. For complex behavior, prefer `inline` functions.
 
 ---
 
 ### Macros in Variadic Functions
 
-```<stdarg.h>``` uses macros to let you work with ```...``` arguments.
+The standard header ``` <stdarg.h> ``` uses macros to help work with variable-length arguments (the ``` ... ``` syntax).
 
 ```
 #include <stdarg.h>
 
-va_list ap;              // macro-defined type
-va_start(ap, last_arg);  // expands to compiler instructions
-int n = va_arg(ap, int); // gets the next argument
-va_end(ap);              // clean up
+void log_numbers(int count, ...)
+{
+    va_list args;             // Defined using macros
+    va_start(args, count);    // Initializes the argument list
+    for (int i = 0; i < count; i++)
+    {
+        int value = va_arg(args, int);  // Retrieves the next argument
+        printf("%d ", value);
+    }
+    va_end(args);             // Cleans up
+printf("\n");
+}
 ```
 
-This lets you write flexible functions like ```printf()``` — accepting any number of arguments of any type (as long as you handle them properly).
+These macros abstract the system-dependent logic for pulling arguments.
+
+---
+
+### Advanced: ``` #pragma ```
+
+The ``` #pragma ``` directive provides **compiler-specific instructions**, such as disabling warnings:
+
+```
+#pragma warning(disable : 4996)
+```
+
+Not portable across all compilers, but useful in large codebases.
+
+---
+
+### Common Pitfalls with Macros
+
+1. **No type checking**  
+   The preprocessor does not check types.
+
+2. **Operator precedence issues**  
+   Forgetting parentheses causes unexpected behavior.
+
+   ```
+   #define BAD_SQUARE(x) x * x
+   BAD_SQUARE(3 + 1)   // becomes 3 + 1 * 3 + 1 → 7, not 16
+   ```
+
+3. **Side effects in macros**  
+   Macros like ``` #define DOUBLE(x) ((x) + (x)) ``` will evaluate `x` multiple times, causing bugs if `x++` is passed.
 
 ---
 
 ### Summary
 
-- Macros are **text replacements** handled before compilation.  
-- Preprocessor directives shape the final code that gets compiled.  
-- Variadic argument handling is built entirely on **macro magic**.  
-- They can be powerful, or dangerous if used without care.
+- Preprocessor directives begin with ``` # ``` and are executed **before compilation**.
+- Macros are **text substitutions** that can act like constants or inline functions.
+- Use macros to improve flexibility, portability, and reduce repetition.
+- Use care: macros lack type checking and can introduce subtle bugs.
+- ``` <stdarg.h> ``` uses preprocessor macros to implement variadic functions like ``` printf() ```.
+- Preprocessor directives are essential for large-scale C programs, especially for modularity, debugging, and conditional builds.
+
+---
 
 ## Parsing and Format Strings
 
