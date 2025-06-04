@@ -11,7 +11,6 @@
 - [Macros and Preprocessor Directives](#macros-and-preprocessor-directives)
 - [Parsing and Format Strings](#parsing-and-format-strings)
 - [Intro to Number Bases](#intro-to-number-bases)
-- [Octal Hex Binary – Visualizing Other Bases](#octal-hex-binary--visualizing-other-bases)
 - [Base Conversion Logic](#base-conversion-logic)
 - [State Tracking and Recursion](#state-tracking-and-recursion)
 - [Unit Testing Basics](#unit-testing-basics)
