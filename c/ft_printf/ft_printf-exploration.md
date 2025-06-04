@@ -149,7 +149,7 @@ These directives are especially powerful for:
 
 ### What Is the Preprocessor?
 
-The preprocessor is a tool that runs **before compilation** and processes commands that begin with ```# ```. It performs tasks like:
+The preprocessor is a tool that runs **before compilation** and processes commands that begin with ```#```. It performs tasks like:
 
 - Inserting code from other files
 - Replacing macro names with their definitions
@@ -162,7 +162,7 @@ These commands are called **preprocessor directives**.
 
 ### What Is a Macro?
 
-A **macro** is a named text substitution, defined using ```#define ```. The preprocessor replaces every occurrence of the macro name with its value or code snippet **before** the compiler compiles it.
+A **macro** is a named text substitution, defined using ```#define```. The preprocessor replaces every occurrence of the macro name with its value or code snippet **before** the compiler compiles it.
 
 ---
 
