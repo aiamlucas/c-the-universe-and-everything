@@ -1,4 +1,4 @@
-# ft_printf – Theory and Prerequisites
+# FT_printf Exploration
 
 > A theory-first guide to help you understand some key concepts behind making ft_printf.
 
