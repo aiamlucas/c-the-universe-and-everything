@@ -56,51 +56,56 @@ github  git@github.com:youruser/libft.git (push)
 - dev: working branch; used at home, pushed to GitHub
 - libft-tests/: separate repo for test mains, notes, debug tools — not pushed to Vogsphere
 
-## Daily Workflow
-
-### At Home
+## Home workflow (on dev branch)
 
 Before working on the `dev` branch, make sure you have the latest updates from `master` (pushed from 42):
 
 ```
-git switch master
-git pull                    # Get the latest clean version
+git switch master 
+git pull github master     // to get the latest clean state
+```
+
+```
 git switch dev
-git merge master            # Merge into your local dev branch
+git rebase master          // rebase dev on top of latest master
 ```
 
 Then continue working:
 
 ```
-# make changes
-git add ft_isascii.c        # Stage only the file(s) you modified
-git commit -m "feat: implement ft_isascii"
-git push origin dev
+git add ft_isascii.c       // stage only the file(s) you modified
+git commit -m "feat: implement ft_isascii"     // commit with a clear message
 ```
 
-### At 42
-
-Pull the latest work you pushed from home:
+Push work to GitHub dev branch
 
 ```
-git pull github dev
-git switch master
-git merge dev
-# This brings in all commits made in dev, with their messages
-git push origin master        # Push to Vogsphere
-git push github master        # Sync GitHub master
+git push github dev
 ```
 
-Now continue working as needed:
+## 42 Campus workflow (update master from dev)
+
+Pull dev branch from GitHub and fast-forward merge
 
 ```
-# make changes
-git add ft_strncmp.c
-git commit -m "feat: implement ft_strncmp"
-# Then push to both remotes:
-git push origin master       # Push to Vogsphere
-git push github master       # Push to GitHub
+git fetch github           // fetch latest changes from GitHub
+git checkout master
+git merge --ff-only github/dev     // fast-forward master to match dev (no merge commit)
 ```
+
+Push updated master to both remotes
+
+```
+git push origin master
+git push github master
+```
+
+Or, if you've defined the alias (for pushing to both remotes at the same time):
+
+```
+gittudo
+```
+
 ## Commit Message Standards
 
 Follow a clear, consistent structure for your commit messages. This helps both you and others understand the history of the project at a glance.
@@ -220,3 +225,83 @@ Make sure both remotes are correctly configured before using it. You can check w
 ```
 git remote -v
 ```
+
+# Git Merges Explained: Regular vs Fast-Forward vs Rebase
+
+To keep a clean and readable history, this workflow uses fast-forward merges instead of regular merges. Combined with rebase in your `dev` branch, this avoids unnecessary merge commits while keeping all your changes and commit messages intact.
+
+## Regular Merge
+
+A **regular merge** happens when two branches have diverged.
+
+```
+git merge dev
+```
+
+This creates a **merge commit**, like this:
+
+      A---B---C  (master)
+       \     \
+        D---E  (dev)
+             \
+              M  ← merge commit
+
+You now have a new commit `M` that combines the histories.  
+**Downside**: These merge commits can clutter your history, especially when working solo.
+
+---
+
+## Fast-Forward Merge
+
+A **fast-forward merge** happens when the current branch has no unique commits, it can just "move forward" to match the target branch.
+
+```
+git merge --ff-only github/dev
+```
+
+Before:
+      A---B  (master)
+           \
+            C---D  (github/dev)
+
+After:
+      A---B---C---D  (master = github/dev)
+
+No merge commit is created — just a straight history.
+
+**Benefit**: Cleaner, linear history. This is ideal when working alone and syncing dev → master.
+
+---
+
+## Rebase (used in `dev` to stay up to date with `master`)
+
+```
+git switch dev
+git rebase master
+```
+
+This rewrites the `dev` branch so that your new work sits "on top of" the latest `master`.
+
+Before:
+      A---B  (master)
+       \
+        C---D  (dev)
+
+After rebase:
+      A---B---C'---D'  (dev)
+
+Commits `C` and `D` are reapplied as new commits `C'` and `D'`.
+
+**Benefit**: Keeps your `dev` history up to date without introducing a merge commit.
+
+---
+
+## Summary
+
+| Method                 | Merge Commit?   | History Clean? | Ideal Use                        |
+|------------------------|-----------------|----------------|----------------------------------|
+| `git merge`            |    Yes          |    No          | Teams, complex merges            |
+| `git merge --ff-only`  |    No           |    Yes         | Syncing clean branches           |
+| `git rebase`           |    No           |    Yes         | Keeping `dev` on top of `master` |
+
+Use **`rebase` in `dev`**, then **`--ff-only` merge into `master`** — for a clean commit history.
