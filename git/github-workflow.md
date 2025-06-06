@@ -56,7 +56,7 @@ github  git@github.com:youruser/libft.git (push)
 - dev: working branch; used at home, pushed to GitHub
 - libft-tests/: separate repo for test mains, notes, debug tools — not pushed to Vogsphere
 
-## Home workflow (on dev branch)
+### Home workflow (on dev branch)
 
 Before working on the `dev` branch, make sure you have the latest updates from `master` (pushed from 42):
 
@@ -83,7 +83,7 @@ Push work to GitHub dev branch
 git push github dev
 ```
 
-## 42 Campus workflow (update master from dev)
+### 42 Campus workflow (update master from dev)
 
 Pull dev branch from GitHub and fast-forward merge
 
@@ -179,7 +179,7 @@ The `gittudo` alias is a shortcut to push the `master` branch to **both Vogspher
 
 ### How to define it (on your 42 computer):
 
-#### For Zsh
+### For Zsh
 
 Add this to your `~/.zshrc`:
 
@@ -226,11 +226,11 @@ Make sure both remotes are correctly configured before using it. You can check w
 git remote -v
 ```
 
-# Git Merges Explained: Regular vs Fast-Forward vs Rebase
+## Git Merges Explained: Regular vs Fast-Forward vs Rebase
 
 To keep a clean and readable history, this workflow uses fast-forward merges instead of regular merges. Combined with rebase in your `dev` branch, this avoids unnecessary merge commits while keeping all your changes and commit messages intact.
 
-## Regular Merge
+### Regular Merge
 
 A **regular merge** happens when two branches have diverged.
 
@@ -240,18 +240,20 @@ git merge dev
 
 This creates a **merge commit**, like this:
 
+```
       A---B---C  (master)
        \     \
         D---E  (dev)
              \
               M  ← merge commit
+```
 
 You now have a new commit `M` that combines the histories.  
 **Downside**: These merge commits can clutter your history, especially when working solo.
 
 ---
 
-## Fast-Forward Merge
+### Fast-Forward Merge
 
 A **fast-forward merge** happens when the current branch has no unique commits, it can just "move forward" to match the target branch.
 
@@ -259,6 +261,7 @@ A **fast-forward merge** happens when the current branch has no unique commits, 
 git merge --ff-only github/dev
 ```
 
+```
 Before:
       A---B  (master)
            \
@@ -267,13 +270,14 @@ Before:
 After:
       A---B---C---D  (master = github/dev)
 
+```
 No merge commit is created — just a straight history.
 
 **Benefit**: Cleaner, linear history. This is ideal when working alone and syncing dev → master.
 
 ---
 
-## Rebase (used in `dev` to stay up to date with `master`)
+### Rebase (used in `dev` to stay up to date with `master`)
 
 ```
 git switch dev
@@ -282,6 +286,7 @@ git rebase master
 
 This rewrites the `dev` branch so that your new work sits "on top of" the latest `master`.
 
+```
 Before:
       A---B  (master)
        \
@@ -289,6 +294,7 @@ Before:
 
 After rebase:
       A---B---C'---D'  (dev)
+```
 
 Commits `C` and `D` are reapplied as new commits `C'` and `D'`.
 
@@ -296,7 +302,7 @@ Commits `C` and `D` are reapplied as new commits `C'` and `D'`.
 
 ---
 
-## Summary
+### Summary
 
 | Method                 | Merge Commit?   | History Clean? | Ideal Use                        |
 |------------------------|-----------------|----------------|----------------------------------|
@@ -305,3 +311,5 @@ Commits `C` and `D` are reapplied as new commits `C'` and `D'`.
 | `git rebase`           |    No           |    Yes         | Keeping `dev` on top of `master` |
 
 Use **`rebase` in `dev`**, then **`--ff-only` merge into `master`** — for a clean commit history.
+
+---
