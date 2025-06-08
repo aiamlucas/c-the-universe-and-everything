@@ -1,8 +1,4 @@
-# Makefiles What, How and Why
-
-> This documentation explores what Makefiles are, why they exist, and how they power the compilation process in C projects.  
-> **Chapter 1: The Basics of Makefiles**  
-> *(Followed later by Chapter 2: Intermediate Features and Chapter 3: Advanced Patterns)*
+# Makefiles
 
 ---
 
