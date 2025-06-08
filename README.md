@@ -20,6 +20,10 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 - [Github Workflow](git/github-workflow.md)
 
+### Makefile
+
+- [Makefiles](makefile/makefiles.md)
+
 ### Shell
 
 - [Markdown Index Generator](shell/markdown-index-generator/markdown-index-generator.md)
