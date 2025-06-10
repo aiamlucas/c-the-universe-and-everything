@@ -24,9 +24,6 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 - [Makefiles](makefile/makefiles.md)
 
-### Mv
-
-
 ### Shell
 
 - [Markdown Index Generator](shell/markdown-index-generator/markdown-index-generator.md)
