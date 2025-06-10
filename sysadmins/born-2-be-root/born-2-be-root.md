@@ -1,6 +1,8 @@
 # Born to Be Root
 
-> Chapter 1: Foundations of Virtualization, Linux, and System Access
+---
+
+## Chapter 1: Foundations of Virtualization, Linux, and System Access
 
 ---
 
@@ -161,6 +163,7 @@ Before doing anything technical in this project, you must:
 
 This foundational theory prepares you for the next chapter — **Hardening the System and Managing Users**.
 
+---
 
 ## Chapter 2: System Hardening and User Management
 
@@ -330,4 +333,254 @@ This chapter prepared you for the hardening tasks in Born to Be Root. You now un
 
 In the next chapter, we’ll look at **monitoring, automation, and bonus-level system setup**.
 
+---
 
+## Chapter 3: Monitoring, Automation, and Extras
+
+---
+
+## Why Monitoring Matters
+
+Monitoring is essential in system administration because it helps you:
+- Know if your system is under heavy load
+- Detect failures or performance issues early
+- Keep track of user activity and network behavior
+- Gather useful data for auditing and optimization
+
+In this project, you write a ```monitoring.sh``` script that prints real-time system stats — it's your first real taste of automated server observation.
+
+---
+
+## System Monitoring Metrics
+
+Your monitoring script must collect and print various system metrics. Here's what each one means:
+
+---
+
+### Architecture and Kernel
+
+**Command:**
+```uname -a```
+
+This outputs:
+- Kernel name
+- Hostname
+- Kernel release and version
+- Architecture (e.g., x86_64)
+
+---
+
+### Physical and Virtual CPUs
+
+**Commands:**
+- ```lscpu```
+- ```grep "CPU(s):" /proc/cpuinfo```
+
+**Terms:**
+- **Physical CPU**: A physical core on the chip
+- **vCPU**: Virtual CPU (logical thread), seen in virtualization or hyper-threading
+
+---
+
+### RAM Usage
+
+**Command:**
+```free -m```
+
+Output includes:
+- Total, used, and available memory
+- Use this to calculate a usage percentage
+
+---
+
+### Disk Usage
+
+**Command:**
+```df -h /```
+
+Shows space used on the root filesystem. You'll display:
+- Total disk
+- Used disk
+- Percentage used
+
+---
+
+### CPU Load
+
+**Command:**
+```top -bn1 | grep "Cpu(s)"```
+
+Displays the current CPU utilization. Look for the user/system/idle split to determine total usage.
+
+---
+
+### Last Boot
+
+**Command:**
+```who -b```
+
+Gives the last system boot time — useful for uptime tracking.
+
+---
+
+### LVM Status
+
+**Command:**
+```lsblk | grep lvm```
+
+You just need to check whether LVM volumes are present and active.
+
+---
+
+### Active TCP Connections
+
+**Command:**
+```ss -ta | grep ESTAB | wc -l```
+
+Counts how many TCP connections are currently established.
+
+---
+
+### Logged-in Users
+
+**Command:**
+```who | wc -l```
+
+Counts how many users are currently logged into the system.
+
+---
+
+### Network Information
+
+**Commands:**
+- IP: ```hostname -I```
+- MAC: ```ip link show```
+
+The MAC address is tied to your virtual network interface.
+
+---
+
+### Sudo Usage Count
+
+**Command:**
+```journalctl _COMM=sudo | grep COMMAND | wc -l```
+
+This counts all sudo commands executed and logged.
+
+---
+
+## Automation with Cron
+
+Cron is a time-based job scheduler.  
+It runs tasks automatically based on defined intervals.
+
+---
+
+### How It Works
+
+Cron reads from:
+- ```/etc/crontab```
+- ```/etc/cron.d/*```
+- User-specific crontabs via ```crontab -e```
+
+Each line defines:
+```
+# ┌──────────── minute (0 - 59)
+# │ ┌────────── hour (0 - 23)
+# │ │ ┌──────── day of month (1 - 31)
+# │ │ │ ┌────── month (1 - 12)
+# │ │ │ │ ┌──── day of week (0 - 7) (Sunday = 0 or 7)
+# │ │ │ │ │
+# │ │ │ │ │
+# * * * * * command to execute
+```
+
+### Your Use Case
+
+To run your monitoring script every 10 minutes:
+```
+*/10 * * * * root bash /path/to/monitoring.sh
+```
+
+Make sure output appears on all logged-in users’ terminals:
+
+**Tool:**
+```wall``` — broadcast messages to all terminal sessions
+
+---
+
+## Writing Bash Scripts
+
+Your ```monitoring.sh``` script is written in Bash — a Unix shell and scripting language.
+
+### Bash Concepts You Should Know
+
+- Variables: ```name=value```
+- Arithmetic: ```$(( expression ))```
+- Loops: ```for```, ```while```
+- Conditionals: ```if [[ condition ]]; then```
+- Command substitution: ```$(command)```
+- Output formatting: ```echo```, ```printf```
+
+### Wall Example
+
+To send to all users:
+
+```
+wall "Server is at 70% CPU usage"
+```
+
+This sends a broadcast message to all terminal users.
+
+---
+
+## Bonus Topics Overview
+
+If you reach the bonus stage, you can expand your system with extra services.  
+The most common example is setting up a **WordPress site** on your server.
+
+---
+
+### Typical Bonus Stack
+
+- **Lighttpd**: Lightweight web server
+- **MariaDB**: MySQL-compatible database
+- **PHP**: Scripting language for dynamic web pages
+
+This teaches you how real web applications are deployed.
+
+---
+
+### Other Possible Services
+
+You can add one additional service (NGINX and Apache2 are excluded).  
+Choose something useful and be ready to explain why you added it.
+
+**Examples:**
+- File sharing server (e.g., Samba)
+- VPN server
+- Mail server
+- Static file server via Python HTTP module
+
+---
+
+### Security Reminder
+
+If you add extra services:
+- You **must open** extra ports in UFW/firewalld
+- You **must justify** your configuration choices
+
+---
+
+## Summary
+
+This chapter covered:
+- What to monitor and how to calculate it
+- Key Bash tools and scripting strategies
+- Cron and timed automation basics
+- Bonus service considerations and examples
+
+---
+
+By now, you’ve explored every major area of system configuration, security, and monitoring that Born to Be Root expects.  
+While the implementation is up to you, this guide should give you the understanding to do it confidently.
