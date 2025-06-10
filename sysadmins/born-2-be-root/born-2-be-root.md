@@ -579,8 +579,3 @@ This chapter covered:
 - Key Bash tools and scripting strategies
 - Cron and timed automation basics
 - Bonus service considerations and examples
-
----
-
-By now, you’ve explored every major area of system configuration, security, and monitoring that Born to Be Root expects.  
-While the implementation is up to you, this guide should give you the understanding to do it confidently.
