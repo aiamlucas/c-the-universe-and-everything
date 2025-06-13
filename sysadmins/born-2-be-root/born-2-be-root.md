@@ -137,18 +137,12 @@ Understanding SSH is essential to managing any real-world server.
 
 You must configure a firewall and open **only** port 4242.
 
-### For Debian: UFW (Uncomplicated Firewall)
+### For Debian: UFW
 
 Basic commands:
 - ```ufw enable```
 - ```ufw allow 4242/tcp```
 - ```ufw status verbose```
-
-### For Rocky: firewalld
-
-- Uses zones to manage rules
-- ```firewall-cmd --add-port=4242/tcp --permanent```
-- ```firewall-cmd --reload```
 
 ---
 
