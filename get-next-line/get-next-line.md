@@ -1,4 +1,4 @@
-# File Descriptors and the Unix Philosophy of "Everything Is a File"
+# "Everything Is a File"
 
 Understanding file descriptors is essential to working with low-level system calls in C and understanding how Linux treats input/output. This chapter dives into how Linux manages files, terminals, and communication channels using file descriptors and how you can use them, especially via the ```read()``` function.
 
