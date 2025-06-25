@@ -8,13 +8,17 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 ### C
 
-- [Arrays](c/arrays/arrays.md)
-- [Two Dimensional Arrays](c/arrays/two-dimensional-arrays/two-dimensional-arrays.md)
-- [Pointers](c/pointers/pointers.md)
-- [Structs](c/structs/structs.md)
 - [Libft Bonus Linked Lists And Structs](c/libft/libft-bonus-linked-lists-and-structs.md)
 - [Libft Exploration](c/libft/libft-exploration.md)
 - [Ft_printf Exploration](c/ft_printf/ft_printf-exploration.md)
+- [Pointers](c/pointers/pointers.md)
+- [Arrays](c/arrays/arrays.md)
+- [Two Dimensional Arrays](c/arrays/two-dimensional-arrays/two-dimensional-arrays.md)
+- [Structs](c/structs/structs.md)
+
+### Get-Next-Line
+
+- [Get Next Line](get-next-line/get-next-line.md)
 
 ### Git
 
