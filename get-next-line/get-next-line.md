@@ -498,3 +498,51 @@ strcpy(buf, "too long!"); // Undefined behavior!
 Always use safe functions like ``` strncpy() ``` or carefully track lengths to avoid corruption or security issues.
 
 ---
+
+# Summary – File Descriptors, Static Variables, and Buffers
+
+---
+
+## File Descriptors
+
+- Every process has a **file descriptor table** mapping small integers (FDs) to file-like objects.
+- Common descriptors:
+  - **0**: `stdin` (input)
+  - **1**: `stdout` (output)
+  - **2**: `stderr` (error output)
+- Descriptors apply not only to files, but also **terminals, sockets, pipes, devices**, etc.
+- System calls like `read()`, `write()`, `open()` use these descriptors to perform I/O.
+
+---
+
+## Static Variables
+
+- `static` in C **preserves variable state** across function calls and **limits scope** in multi-file programs.
+- Key use cases:
+  - Track state in functions like `get_next_line()`
+  - Hide internal helpers in modular programs
+- A static variable is **initialized once**, lives for the **entire runtime**, but may only be **accessible within a certain scope** (function or file).
+
+---
+
+## Buffers
+
+- Buffers are temporary memory blocks used to store data during I/O.
+- Reading/writing in **chunks** (e.g., 1024 bytes) improves performance and reduces system calls.
+- Use in:
+  - File I/O
+  - Terminals
+  - Streams and networks
+- Know the difference between:
+  - **Buffered I/O** (e.g., `fgets()`)
+  - **Unbuffered I/O** (e.g., `read()`)
+
+---
+
+## Putting It All Together
+
+These concepts combine in real-world scenarios like:
+
+- Reading from a file line-by-line with efficient memory use
+- Managing state across function calls
+- Preventing performance bottlenecks by controlling how and when data is accessed
