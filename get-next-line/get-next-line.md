@@ -1,3 +1,5 @@
+> Some previous lines before getting the next line!
+
 # "Everything Is a File"
 
 Understanding file descriptors is essential to working with low-level system calls in C and understanding how Linux treats input/output. This chapter dives into how Linux manages files, terminals, and communication channels using file descriptors and how you can use them, especially via the ```read()``` function.
@@ -185,3 +187,314 @@ This shows all open FDs for your current shell process.
 
 ---
 
+
+# Static Variables
+
+In C programming, `static` is one of the most versatile storage class specifiers.  
+It affects **variable lifetime**, **visibility**, and **linkage**, depending on context.  
+
+---
+
+## 1. What Does `static` Mean?
+
+The `static` keyword can be used in:
+
+- Global scope (outside functions)
+- Local scope (inside functions)
+- Inside headers or `.c` files
+- On variables or functions
+
+In **all cases**, `static` changes **duration** (how long a variable lives) or **linkage** (visibility across files).
+
+---
+
+## 2. Static Local Variables
+
+When you declare a variable inside a function with `static`, it:
+
+- **Maintains its value** between function calls
+- Is initialized **only once**
+- Has **function scope**, but **lives for the entire program**
+
+### Example
+
+```
+#include <stdio.h>
+
+void counter(void)
+{
+static int count = 0; // This variable keeps its value between calls
+count++;
+printf("count = %d\n", count);
+}
+
+int main(void)
+{
+counter(); // count = 1
+counter(); // count = 2
+counter(); // count = 3
+return 0;
+}
+```
+
+Without `static`, `count` would reset to 0 on each call.
+
+---
+
+## 3. Static Global Variables
+
+Declaring a global variable as `static` means:
+
+- It’s only **visible to the file it’s defined in**
+- It can’t be accessed from other `.c` files
+- It’s useful for **encapsulation** in modular programs
+
+### Example
+
+In `module.c`:
+
+```
+static int internal_flag = 0; // Only accessible in this file
+
+void set_flag(void) 
+{
+internal_flag = 1;
+}
+```
+
+In another file, trying to `extern int internal_flag;` will fail.
+
+---
+
+## 4. Static Functions
+
+Marking a function as `static` restricts its visibility:
+
+- The function can **only be used in the same file**
+- It’s **not linked externally**, preventing symbol clashes
+
+### Example
+
+```
+static void hidden_function(void) 
+{
+// Only callable in this file
+}
+```
+
+This is good practice for internal helpers in libraries or modules.
+
+---
+
+## 5. Static Initialization
+
+Static variables are:
+
+- **Zero-initialized** by default (if not explicitly set)
+- Initialized **only once**
+- Safe to use without uninitialized memory bugs
+
+Example:
+
+```
+void foo(void) 
+{
+static int x; // Initialized to 0 automatically
+x++;
+}
+```
+
+---
+
+## 6. Static vs Global
+
+| Feature        | `static` local var     | `static` global var       | Global var (no static) |
+|----------------|------------------------|---------------------------|------------------------|
+| Scope          | Only within function   | Only within file          | Everywhere             |
+| Lifetime       | Whole program          | Whole program             | Whole program          |
+| Initial value  | 0 (unless set)         | 0 (unless set)            | 0 (unless set)         |
+| Linkage        | None                   | Internal                  | External               |
+
+---
+
+## 7. Use Cases of Static Variables
+
+- Preserve state in **repeated function calls** (like in parsers or iterators)
+- Limit scope of **internal configuration** variables
+- Avoid **naming collisions** in large codebases
+- Hide **helper functions** and private APIs
+
+---
+
+## 8. Gotchas and Best Practices
+
+- **Don’t overuse static** — it can make code harder to test and reason about
+- Beware of **reentrancy** and **thread safety**: static local variables are shared across function calls
+- Use static functions and globals to **enforce modular design**
+- In libraries, **expose only what’s needed** — hide everything else with `static`
+
+---
+
+
+# Buffers – Understanding Data Storage and Flow
+
+A **buffer** is a temporary storage area used to hold data while it's being transferred between two locations, such as from disk to memory, or from memory to the screen. Buffers play a crucial role in C programming, particularly in input/output (I/O) operations.
+
+This guide covers what buffers are, how they work, and how they appear in your C programs.
+
+---
+
+## 1. What Is a Buffer?
+
+A **buffer** is essentially a **block of memory** allocated to temporarily hold data. It helps coordinate the speed difference between devices, functions, or layers in your program.
+
+### Why use buffers?
+
+- Reduce the number of I/O operations (which are expensive)
+- Allow smooth, chunked data processing
+- Prevent data loss during transfer
+- Improve efficiency
+
+---
+
+## 2. Common Uses of Buffers in C
+
+- Reading from a file
+- Writing to a file
+- Processing data streams
+- Collecting user input
+- Networking (socket buffers)
+- System calls like ``` read() ``` and ``` write() ```
+
+---
+
+## 3. Example: Buffer with ``` read() ```
+
+```
+#include <unistd.h>
+#include <fcntl.h>
+
+int main(void)
+{
+int fd = open("file.txt", O_RDONLY);
+if (fd == -1)
+return 1;
+
+char buffer[1024];
+ssize_t bytes_read;
+
+while ((bytes_read = read(fd, buffer, sizeof(buffer))) > 0)
+{
+    // Process data in buffer
+    write(1, buffer, bytes_read);  // Output to stdout
+}
+
+close(fd);
+return 0;
+}
+```
+
+### What’s Happening?
+
+- ``` buffer ``` is a local array (the buffer)
+- ``` read() ``` fills it with up to 1024 bytes
+- ``` write() ``` outputs that buffer to the terminal
+
+The buffer allows you to process the file in chunks — ideal for big files or streams.
+
+---
+
+## 4. Buffer Size
+
+Choosing the right buffer size is a balance:
+
+| Size                   | Pros                              | Cons                          |
+|------------------------|-----------------------------------|-------------------------------|
+| Small (e.g. 32B)       | Low memory usage                  | More system calls             |
+| Medium (e.g. 512B–4KB) | Good performance for general use  | May still hit slowdowns       |
+| Large (e.g. >8KB)      | Fewer calls, better throughput    | Higher memory usage, latency  |
+
+Typical default: 1024 or 4096 bytes (matches common OS page size)
+
+---
+
+## 5. Buffered vs Unbuffered I/O
+
+The C Standard Library (stdio) uses **buffered I/O** functions like ``` fread() ``` and ``` fwrite() ```. These work on top of file descriptors and manage their own internal buffers.
+
+```
+FILE *f = fopen("file.txt", "r");
+char line[512];
+fgets(line, sizeof(line), f);
+```
+
+Here, `fgets()` uses a hidden buffer managed by `f`. You don’t call `read()` directly — the buffer is refilled automatically.
+
+You can also control buffering behavior using:
+
+- ``` setvbuf() ``` — manually set the buffer
+- ``` fflush() ``` — flush the buffer (force write)
+- ``` setbuf() ``` — simpler version of ``` setvbuf() ```
+
+---
+
+## 6. Manual Buffering and Chunked Processing
+
+Buffers are essential when writing custom I/O logic, like in the `get_next_line` project.
+
+```
+#define BUFFER_SIZE 1024
+
+char *buffer = malloc(BUFFER_SIZE + 1);
+ssize_t bytes = read(fd, buffer, BUFFER_SIZE);
+buffer[bytes] = '\0';
+```
+
+You'll likely:
+
+- Append to a larger string
+- Search for a newline
+- Store leftover data between calls (possibly using ``` static ```)
+
+---
+
+## 7. Real-Life Buffer Examples
+
+| Area                 | Example Buffer Use                             |
+|----------------------|------------------------------------------------|
+| Filesystem           | Page cache buffers data before read/write      |
+| Networking           | TCP send/receive buffers                       |
+| Video/audio streaming| Frame or sample buffering                      |
+| User interfaces      | Keyboard/mouse input buffering                 |
+| Terminal I/O         | Line buffering in stdin/stdout                 |
+
+---
+
+## 8. Types of Buffering in stdio
+
+| Type         | Description                          | When It Happens                      |
+|--------------|--------------------------------------|--------------------------------------|
+| Full         | Buffer is filled before flushing     | Disk files (default)                 |
+| Line         | Flushed on newline                   | Terminals                            |
+| Unbuffered   | Data is written immediately          | stderr (by default), or explicitly   |
+
+Change behavior with:
+
+```
+setvbuf(stdout, NULL, _IONBF, 0); // disable buffering
+```
+
+---
+
+## 9. Buffer Overflow (Caution!)
+
+A **buffer overflow** occurs when you write more data into a buffer than it can hold.
+
+```
+char buf[5];
+strcpy(buf, "too long!"); // Undefined behavior!
+```
+
+Always use safe functions like ``` strncpy() ``` or carefully track lengths to avoid corruption or security issues.
+
+---
