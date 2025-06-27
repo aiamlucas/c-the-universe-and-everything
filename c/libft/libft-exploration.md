@@ -2195,16 +2195,16 @@ int main(void)
     if (!text) return 1;
 
     // Fill text buffer with a string: "Hi!\n"
-    text[0] = 'H';   // text[0] = 'H'
-    text[1] = 'i';   // text[1] = 'i'
-    text[2] = '!';   // text[2] = '!'
-    text[3] = '\n';  // text[3] = newline character
-    text[4] = '\0';  // text[4] = string terminator
+    text[0] = 'H';
+    text[1] = 'i';
+    text[2] = '!';
+    text[3] = '\n';
+    text[4] = '\0';
 
     // Visual of the original array (5 bytes):
     // [ H ][ i ][ ! ][ \n ][ \0 ]
 
-    // Step 3: Reallocate to 10 bytes
+    // Reallocate to 10 bytes
     text = ft_realloc(text, 5, 10);
     if (!text) return 1;
 
@@ -2212,10 +2212,8 @@ int main(void)
     // [ H ][ i ][ ! ][ \n ][ \0 ][ ? ][ ? ][ ? ][ ? ][ ? ]
     // Where '?' are uninitialized/garbage values
 
-    // Step 4: Print string to stdout
     printf("%s", text);  // Output: Hi!<newline>
 
-    // Step 5: Cleanup
     free(text);
     return 0;
 }
