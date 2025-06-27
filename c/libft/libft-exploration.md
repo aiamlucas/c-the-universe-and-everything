@@ -38,6 +38,7 @@ Brought into being at t = 0, via Makefile.
 - [ft_split()](#ft_split)
 - [ft_strmapi()](#ft_strmapi)
 - [ft_striteri()](#ft_striteri)
+- [ft_realloc()](#ft_realloc)
 
 
 # memcpy()
@@ -2109,3 +2110,124 @@ int main(void)
 	return 0;
 }
 ```
+
+# ft_realloc()
+
+## Overview
+
+```realloc()``` resizes a block of memory previously allocated using ```malloc()``` (or ```calloc()```), preserving its content.
+
+This function is useful when working with dynamically growing arrays or strings, allowing more flexible memory management.
+
+---
+
+## Prototype
+
+```void *ft_realloc(void *ptr, size_t old_size, size_t new_size);```
+
+***Note:*** The standard ```realloc()``` has the prototype:
+```
+Original --> void *realloc(void *ptr, size_t new_size);
+```
+The standard `realloc()` can track the original size internally using hidden metadata managed by the system's memory allocator (e.g., glibc).
+The custom `ft_realloc()` can’t. It needs `old_size` to safely copy the correct number of bytes.
+
+---
+
+## Purpose
+
+- If ```ptr``` is ```NULL```, it behaves like ```malloc(new_size)```.
+- If ```new_size == 0```, it behaves like ```free(ptr)``` and returns ```NULL```.
+- Otherwise:
+  - Allocates new memory of size ```new_size```.
+  - Copies the minimum of ```old_size``` and ```new_size``` bytes from ```ptr```.
+  - Frees the original ```ptr```.
+
+---
+
+## Visualization
+
+Memory blocks before and after resizing:
+
+```
+Old memory (5 bytes): [A][B][C][D][E]
+Resize to 8 bytes → [A][B][C][D][E][?][?][?]
+
+Or shrink:
+Old memory (5 bytes): [A][B][C][D][E]
+Resize to 3 bytes → [A][B][C]
+```
+---
+
+## Key Concepts
+
+- ```ft_realloc()``` copies only the existing relevant data, up to ```new_size```.
+- It avoids memory leaks by freeing the old pointer.
+- Manual tracking of ```old_size``` is necessary (unlike the standard ```realloc()```).
+- Useful in manual memory management situations.
+
+---
+
+## Common Use Cases
+
+- Dynamically appending to strings
+- Reading a file into a buffer that grows as needed
+- Resizing arrays without fixed size
+- Custom dynamic containers
+
+---
+
+## Downsides of ft_realloc()
+
+- Slightly slower than ```malloc()``` due to memory copying.
+- Incorrect ```old_size``` can result in undefined behavior.
+- You must handle ```NULL``` checks and edge cases manually.
+
+---
+
+## Example Usage
+
+```
+int main(void)
+{
+    // Allocate 5 bytes
+    char *text = malloc(5);
+    if (!text) return 1;
+
+    // Fill text buffer with a string: "Hi!\n"
+    text[0] = 'H';   // text[0] = 'H'
+    text[1] = 'i';   // text[1] = 'i'
+    text[2] = '!';   // text[2] = '!'
+    text[3] = '\n';  // text[3] = newline character
+    text[4] = '\0';  // text[4] = string terminator
+
+    // Visual of the original array (5 bytes):
+    // [ H ][ i ][ ! ][ \n ][ \0 ]
+
+    // Step 3: Reallocate to 10 bytes
+    text = ft_realloc(text, 5, 10);
+    if (!text) return 1;
+
+    // New memory (10 bytes), contents:
+    // [ H ][ i ][ ! ][ \n ][ \0 ][ ? ][ ? ][ ? ][ ? ][ ? ]
+    // Where '?' are uninitialized/garbage values
+
+    // Step 4: Print string to stdout
+    printf("%s", text);  // Output: Hi!<newline>
+
+    // Step 5: Cleanup
+    free(text);
+    return 0;
+}
+```
+
+---
+
+## When to Use It?
+
+- When manually growing buffers.
+- When manually growing buffers during input parsing, file reading, or network streaming. 
+- When implementing your own version of a vector or list.
+- When optimizing for memory efficiency in constrained environments.
+
+---
