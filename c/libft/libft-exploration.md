@@ -324,11 +324,22 @@ Think of it like scanning a row of lockers for a specific item:
 ```// Prototype: void *memchr(const void *s, int c, size_t n);```
 
 ```
-char data[] = "space is the place";
-char *result = memchr(data, 'e', 10);
+#include <stdio.h>
+#include <string.h>
 
-// result points to: &data[4]
-// value at that position: 'e'
+int main(void)
+{
+    const char *text = "space is the place";
+    // Search for the first occurrence of 'e' in the first 18 bytes
+    char *first_e = memchr(text, 'e', strlen(text));
+
+    if (first_e)
+        printf("First 'e' found at: %ld\n", first_e - text);
+    else
+        printf("'e' not found\n");
+
+    return 0;
+}
 ```
 
 # memcmp()
