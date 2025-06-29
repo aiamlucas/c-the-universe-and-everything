@@ -536,3 +536,169 @@ Always use safe functions like ``` strncpy() ``` or carefully track lengths to a
 - Know the difference between:
   - **Buffered I/O** (e.g., `fgets()`)
   - **Unbuffered I/O** (e.g., `read()`)
+
+
+# The `read()` Function – Reading Raw Data from File Descriptors
+
+The ```read()``` system call is one of the most fundamental ways to read raw bytes from an input source in Unix-like systems. It's part of the POSIX standard and interacts directly with file descriptors (FDs).
+
+---
+
+## Prototype
+
+```
+ssize_t read(int fd, void *buf, size_t count);
+```
+
+- ```fd```: The file descriptor to read from (e.g., ```0``` for stdin)
+- ```buf```: Pointer to a buffer where the data will be stored
+- ```count```: Maximum number of bytes to read
+
+Returns:
+- ```> 0```: Number of bytes successfully read
+- ``` 0 ```: End of file (EOF)
+- ```-1```: Error (check ```errno```)
+
+---
+
+## Example
+
+```
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
+
+int main(void)
+{
+    char buffer[64];
+    int fd = open("example.txt", O_RDONLY);
+    if (fd == -1)
+        return 1;
+
+    ssize_t nbytes = read(fd, buffer, sizeof(buffer) - 1);
+    if (nbytes >= 0)
+    {
+        buffer[nbytes] = '\0'; // Null-terminate to make it printable
+        write(1, buffer, nbytes); // Write to stdout
+    }
+
+    close(fd);
+    return 0;
+}
+```
+
+---
+
+## Key Concepts
+
+- ```read()``` operates at a **low level**, meaning it works on raw bytes and doesn't understand strings or files.
+- It only reads **up to** ```count``` bytes. It may read fewer, for example:
+  - End of file reached
+  - The resource (e.g., pipe/socket) doesn’t have more data yet
+- The contents of the buffer **are not automatically null-terminated**.
+
+---
+
+## Common Use Cases
+
+- Reading from files
+- Reading from standard input
+- Reading from pipes or sockets
+- Implementing manual parsing or custom I/O logic
+
+---
+
+## Handling Partial Reads
+
+```read()``` doesn't guarantee it will return the full ```count``` bytes. Always check the return value and use loops for complete reading.
+
+```
+char buffer[1024];
+ssize_t total = 0, bytes;
+
+while ((bytes = read(fd, buffer + total, 1024 - total)) > 0)
+    total += bytes;
+```
+
+---
+
+## Edge Cases
+
+- ```read() == 0``` means end-of-file (EOF).
+- ```read() == -1``` means an error occurred. Use ```perror()``` or inspect ```errno```.
+- Don't forget to ```close(fd)``` after reading to free up system resources.
+
+---
+
+## Comparison to `fread()`
+
+| Feature             | ```read()```                 | ```fread()``` (stdio.h)               |
+|---------------------|------------------------------|---------------------------------------|
+| Buffering           | No (unbuffered, raw)         | Yes (uses internal FILE* buffer)      |
+| Null-terminates?    | No                           | No (but ```fgets()``` does)           |
+| Handles file input? | Yes                          | Yes                                   |
+| Suitable for        | Systems, sockets, devices    | User-level file handling              |
+
+---
+
+## Visual Summary
+
+If a file has content:
+
+```
+hello world
+```
+
+And we run:
+
+```
+read(fd, buffer, 5);
+```
+
+We get:
+
+```
+buffer: [ h ][ e ][ l ][ l ][ o ]
+         ^ start here
+```
+
+### Reading Is Sequential
+
+Read moves forward internally, to get the rest, call ```read()``` again.
+
+When you call ```read()``` on a file descriptor, the operating system reads data starting from the **current offset** (position) in the file. After the read, the file descriptor's offset automatically **moves forward** by the number of bytes read.
+
+For example:
+
+```
+int fd = open("file.txt", O_RDONLY);
+char buffer[6];
+
+// First read
+read(fd, buffer, 5);  // Reads first 5 bytes: "hello"
+
+// Second read
+read(fd, buffer, 5);  // Reads next 5 bytes: " worl"
+
+// Third read
+read(fd, buffer, 5);  // Reads final bytes: "d\n" or similar
+```
+
+This behavior means ```read()``` is **stateful** — each call continues from where the last one left off.
+
+If you want to re-read from the beginning, you can manually reset the file offset using ```lseek()```:
+
+```
+lseek(fd, 0, SEEK_SET); // Jump back to start of file
+```
+
+This offset-tracking behavior is how you can loop through a file and progressively process it — each ```read()``` gives you the next chunk.
+
+---
+
+## Notes
+
+- Always combine with error checking
+- Combine with ```write()``` for low-level I/O routines
+
+---
