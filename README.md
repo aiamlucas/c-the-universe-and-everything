@@ -8,6 +8,7 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 ### C
 
+- [Fractol](c/fractol/fractol.md)
 - [Libft Bonus Linked Lists And Structs](c/libft/libft-bonus-linked-lists-and-structs.md)
 - [Libft Exploration](c/libft/libft-exploration.md)
 - [Ft_printf Exploration](c/ft_printf/ft_printf-exploration.md)
