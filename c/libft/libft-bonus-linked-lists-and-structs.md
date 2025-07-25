@@ -12,7 +12,7 @@ It focuses on dynamic memory, data structures and how to build and manage **link
 - [Introduction to Data Structures](#introduction-to-data-structures)
 - [ft_lstnew()](#ft_lstnew)
 - [ft_lstadd_front()](#ft_lstadd_front)
-- [ft_lstsize()]() - TO DO
+- [ft_lstsize()](#ft_lstsize)
 - [ft_lstlast()]() - TO DO
 - [ft_lstadd_back()]()	- TO DO
 - [ft_lstdelone()]()	- TO DO
@@ -660,3 +660,106 @@ Output:
 Head content: first
 Next content: second
 ```
+
+
+# ft_lstsize()
+
+## Overview
+
+```ft_lstsize()``` counts the number of nodes in a linked list.  
+It traverses the list from the head to the end and returns how many nodes were found.
+
+This is useful for knowing how many elements you have, or when you need to iterate over the full list.
+
+---
+
+## Prototype
+
+```int ft_lstsize(t_list *lst);```
+
+---
+
+## How to Visualize It
+
+Imagine a list like this:
+
+```
+[ "Sun" ] → [ "Ra" ] → [ "Space" ] → NULL
+```
+
+Calling:
+
+```ft_lstsize(list);```
+
+Will return:
+
+```3``` — since there are 3 nodes in the list.
+
+---
+
+## Key Concepts
+
+- Starts at the head of the list
+- Moves through each ```next``` pointer until ```NULL```
+- Counts how many nodes it visits
+- Returns ```0``` if the list is empty
+
+---
+
+## Analogy
+
+Counting Train Cars
+
+Imagine you're standing at the front of a train, walking through each car until the end.
+ - Each car = one node
+ - The last car (no door forward) = NULL
+ - Your count = total number of nodes
+
+---
+
+## When To Use It?
+
+- To find the length of the list
+- When iterating with an index
+- When allocating arrays or buffers based on list size
+
+---
+
+## Downsides of ft_lstsize()
+
+- Runs in ```O(n)``` time (must walk the entire list)
+- Can’t jump directly to the end (must go node by node)
+
+---
+
+## Example
+
+```// Prototype: int ft_lstsize(t_list *lst);```
+
+```
+#include "libft.h"
+#include <stdio.h>
+
+int main(void)
+{
+t_list *a = ft_lstnew("one");
+t_list *b = ft_lstnew("two");
+t_list *c = ft_lstnew("three");
+
+a->next = b;
+b->next = c;
+
+int count = ft_lstsize(a);
+printf("List size: %d\n", count);  // Output: 3
+
+return 0;
+}
+```
+
+---
+
+## Output
+
+```List size: 3```
+
+---
