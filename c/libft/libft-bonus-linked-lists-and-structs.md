@@ -14,7 +14,7 @@ It focuses on dynamic memory, data structures and how to build and manage **link
 - [ft_lstadd_front()](#ft_lstadd_front)
 - [ft_lstsize()](#ft_lstsize)
 - [ft_lstlast()](#ft_lstlast)
-- [ft_lstadd_back()]()	- TO DO
+- [ft_lstadd_back()](#ft_lstadd_back)
 - [ft_lstdelone()]()	- TO DO
 - [ft_lstclear()]() - TO DO
 - [ft_lstiter()]() - TO DO
@@ -865,3 +865,121 @@ return 0;
 Last node content: last
 
 ---
+
+# ft_lstadd_back()
+
+## Overview
+
+```ft_lstadd_back()``` adds a new node to the **end** of a linked list.
+
+It traverses the list until it reaches the last node, then links the new node to the end.  
+If the list is empty, the new node becomes the first (head) node.
+
+---
+
+## Prototype
+
+```void ft_lstadd_back(t_list **lst, t_list *new);```
+
+---
+
+## How to Visualize It
+
+Initial list:
+
+```
+[ "Mercury" ] → [ "Venus" ] → NULL
+```
+
+New node:
+
+```
+[ "Earth" ] → NULL
+```
+
+After:
+
+```ft_lstadd_back(&list, new);```
+
+Result:
+
+```
+[ "Mercury" ] → [ "Venus" ] → [ "Earth" ] → NULL
+```
+
+---
+
+## Key Concepts
+
+- ```lst``` is a **pointer to the head** of the list.
+- ```new``` is the node to add.
+- The function:
+  - If the list is empty: sets ```*lst = new```.
+  - Otherwise: walks to the end and links ```last->next = new```.
+- No return value — the pointer is modified directly.
+
+---
+
+## Analogy
+
+Think of a **train** where each **car** (node) is connected in order.
+
+- You want to **attach a new car** to the **end**.
+- You walk through each car until you reach the last one (its ```next == NULL```).
+- You connect the new car by updating the last one’s ```next``` pointer.
+
+Now the train has a new tail car!
+
+---
+
+## When To Use It?
+
+- To append new data to the end of a list.
+- To maintain **insertion order** (oldest-first).
+- When building a list progressively from front to back.
+
+---
+
+## Downsides of ft_lstadd_back()
+
+- Traversing to the end is ```O(n)``` time, it's inefficient if the list is very long.
+- You must check for ```NULL``` pointers and memory issues.
+- Always ensure ```new``` is a valid, allocated node.
+
+---
+
+## Example
+
+```// Prototype: void ft_lstadd_back(t_list **lst, t_list *new);```
+
+```
+#include "libft.h"
+#include <stdio.h>
+
+int main(void)
+{
+t_list *list = ft_lstnew("Engine");
+t_list *car1 = ft_lstnew("Passenger Car");
+t_list *car2 = ft_lstnew("Dining Car");
+
+
+ft_lstadd_back(&list, car1); // Attach first car
+ft_lstadd_back(&list, car2); // Attach second car
+
+t_list *temp = list;
+while (temp)
+{
+    printf("%s\n", (char *)temp->content);
+    temp = temp->next;
+}
+
+return 0;
+```
+
+**Output:**
+Engine
+Passenger Car
+Dining Car
+
+---
+
