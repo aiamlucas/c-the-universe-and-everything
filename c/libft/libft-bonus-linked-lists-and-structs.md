@@ -15,7 +15,7 @@ It focuses on dynamic memory, data structures and how to build and manage **link
 - [ft_lstsize()](#ft_lstsize)
 - [ft_lstlast()](#ft_lstlast)
 - [ft_lstadd_back()](#ft_lstadd_back)
-- [ft_lstdelone()]()	- TO DO
+- [ft_lstdelone()](#ft_lstdelone)
 - [ft_lstclear()]() - TO DO
 - [ft_lstiter()]() - TO DO
 - [ft_lstmap()]() - TO DO
@@ -983,3 +983,119 @@ Dining Car
 
 ---
 
+# ft_lstdelone()
+
+## Overview
+
+```ft_lstdelone()``` deletes a single node from a linked list and frees its memory.
+
+This function is used when you want to remove just **one specific node** from your linked list, and clean up its content.
+
+It does **not** update the links in the list. It only deletes the node itself.
+
+---
+
+## Prototype
+
+```void ft_lstdelone(t_list *lst, void (*del)(void *));```
+
+---
+
+## How to Visualize It
+
+Imagine this list:
+
+[ "Earth" ] → [ "Mars" ] → [ "Jupiter" ] → NULL
+
+You want to delete "Mars".
+
+Call:
+
+```ft_lstdelone(mars_node, free_content);```
+
+After the call, "Mars" is destroyed (memory freed), but the list still looks like:
+
+[ "Earth" ] → [ ??? ] → [ "Jupiter" ] → NULL
+
+Important: the pointer from "Earth" still points to "Mars" unless you manually unlink it.
+This function **only deletes** the given node, it does **not fix the chain**.
+
+---
+
+## Key Concepts
+
+- ```lst```: The node you want to delete.
+- ```del```: A function pointer used to free the node’s ```content```.
+- The node’s ```next``` is not affected — you must manage that yourself.
+
+---
+
+## Analogy
+
+Think of a train where each wagon carries cargo:
+
+- The ```content``` is the cargo.
+- The ```del``` function unloads and disposes of the cargo.
+- The wagon is then taken apart and scrapped (freed from memory).
+
+But: it's your job to disconnect it from the train before scrapping it!
+
+---
+
+## When To Use It?
+
+- To remove a single node that’s no longer needed.
+- When cleaning up individual nodes inside larger list operations (e.g., in ```ft_lstclear()```).
+- To delete nodes after filtering or mapping functions.
+
+---
+
+## Downsides of ft_lstdelone()
+
+- It does not handle unlinking — only deletes the node.
+- You must ensure ```del``` properly frees what ```content``` points to.
+- If you pass NULL for ```del```, the ```content``` won’t be freed.
+
+---
+
+## Example
+
+```
+#include "libft.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+void	free_content(void *content)
+{
+	free(content);
+}
+
+int	main(void)
+{
+	// Allocate and duplicate strings so we can safely free them later
+	t_list *list = ft_lstnew(strdup("Engine"));
+	t_list *car1 = ft_lstnew(strdup("Passenger Car"));
+	t_list *car2 = ft_lstnew(strdup("Dining Car"));
+
+	// Link the train cars
+	ft_lstadd_back(&list, car1);
+	ft_lstadd_back(&list, car2);
+
+	// Simulate deleting the middle car
+	ft_lstdelone(car1, free_content);
+
+	// Print to see what’s left
+	t_list *current = list;
+	while (current)
+	{
+		printf("Car: %s\n", (char *)current->content);
+		current = current->next;
+	}
+
+	// Free remaining nodes manually (Engine and Dining Car)
+	ft_lstdelone(list, free_content);
+	ft_lstdelone(car2, free_content);
+
+	return 0;
+}
+```
