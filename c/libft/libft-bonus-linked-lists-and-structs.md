@@ -13,7 +13,7 @@ It focuses on dynamic memory, data structures and how to build and manage **link
 - [ft_lstnew()](#ft_lstnew)
 - [ft_lstadd_front()](#ft_lstadd_front)
 - [ft_lstsize()](#ft_lstsize)
-- [ft_lstlast()]() - TO DO
+- [ft_lstlast()](#ft_lstlast)
 - [ft_lstadd_back()]()	- TO DO
 - [ft_lstdelone()]()	- TO DO
 - [ft_lstclear()]() - TO DO
@@ -761,5 +761,107 @@ return 0;
 ## Output
 
 ```List size: 3```
+
+---
+
+
+# ft_lstlast()
+
+## Overview
+
+```ft_lstlast()``` returns the **last node** in a singly linked list.
+
+Unlike an array where you can access the last element directly by index, a linked list must be **traversed** node by node until the ```next``` pointer is ```NULL```. This function performs that traversal and returns the final node in the chain.
+
+---
+
+## Prototype
+
+```t_list *ft_lstlast(t_list *lst);```
+
+---
+
+## How to Visualize It
+
+Imagine this list:
+
+```
+[ "Sun" ] → [ "Ra" ] → [ "Space" ] → NULL
+```
+
+Calling:
+
+```ft_lstlast(list);```
+
+Returns:
+
+```
+[ "Space" ] → NULL
+```
+---
+
+## Key Concepts
+
+- A linked list ends when a node’s ```next``` pointer is ```NULL```.
+- ```ft_lstlast()``` walks through the list until it finds that terminal node.
+- If the list is empty (```lst == NULL```), it returns ```NULL```.
+- It does **not** modify the list, it simply **returns a pointer** to the last node.
+
+---
+
+## Analogy
+
+Think of a long train made up of several cars, each connected to the next:
+
+- The first car is the head of the list.
+- Each car has a door leading to the next one, just like a node’s next pointer.
+- To find the last car, you walk through each car, one by one.
+- The last car is the one with no door forward: its next is NULL.
+
+This is what ft_lstlast() does: it walks through the train cars until it finds the one that has no more after it.
+
+---
+
+## When To Use It?
+
+- To add a node to the end (with ```ft_lstadd_back()```)
+- When processing only the final element
+- When needing to append or monitor the tail of a dynamic list
+
+---
+
+## Downsides of ft_lstlast()
+
+- Linear time: ```O(n)``` it must walk the entire list
+- Doesn’t work with a ```NULL``` list (returns ```NULL```)
+- Use cautiously in performance-critical loops
+
+---
+
+## Example
+
+```// Prototype: t_list *ft_lstlast(t_list *lst);```
+
+```
+#include "libft.h"
+#include <stdio.h>
+
+int main(void)
+{
+t_list *list = ft_lstnew("first");
+ft_lstadd_back(&list, ft_lstnew("middle"));
+ft_lstadd_back(&list, ft_lstnew("last"));
+
+
+t_list *last = ft_lstlast(list);
+if (last)
+    printf("Last node content: %s\n", (char *)last->content);
+
+return 0;
+}
+```
+
+**Output**:
+Last node content: last
 
 ---
