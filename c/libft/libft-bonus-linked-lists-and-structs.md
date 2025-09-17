@@ -1064,6 +1064,7 @@ But: it's your job to disconnect it from the train before scrapping it!
 #include "libft.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void	free_content(void *content)
 {
@@ -1072,19 +1073,19 @@ void	free_content(void *content)
 
 int	main(void)
 {
-	// Allocate and duplicate strings so we can safely free them later
 	t_list *list = ft_lstnew(strdup("Engine"));
 	t_list *car1 = ft_lstnew(strdup("Passenger Car"));
 	t_list *car2 = ft_lstnew(strdup("Dining Car"));
 
-	// Link the train cars
-	ft_lstadd_back(&list, car1);
-	ft_lstadd_back(&list, car2);
+	// Link the nodes manually (in case ft_lstadd_back is buggy)
+	list->next = car1;
+	car1->next = car2;
 
-	// Simulate deleting the middle car
+	// Unlink car1 before deleting
+	list->next = car1->next;
 	ft_lstdelone(car1, free_content);
 
-	// Print to see what’s left
+	// Print remaining cars
 	t_list *current = list;
 	while (current)
 	{
@@ -1092,10 +1093,16 @@ int	main(void)
 		current = current->next;
 	}
 
-	// Free remaining nodes manually (Engine and Dining Car)
+	// Free remaining cars
 	ft_lstdelone(list, free_content);
 	ft_lstdelone(car2, free_content);
 
 	return 0;
 }
 ```
+
+**Output:**
+Car: Engine
+Car: Dining Car
+
+---
