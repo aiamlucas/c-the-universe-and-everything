@@ -1077,7 +1077,6 @@ int	main(void)
 	t_list *car1 = ft_lstnew(strdup("Passenger Car"));
 	t_list *car2 = ft_lstnew(strdup("Dining Car"));
 
-	// Link the nodes manually (in case ft_lstadd_back is buggy)
 	list->next = car1;
 	car1->next = car2;
 
