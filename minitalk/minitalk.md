@@ -1,6 +1,6 @@
 # Minitalk
 
-> “Treat a UNIX signal as a **single-bit courier**. Your job is to turn two couriers (SIGUSR1/SIGUSR2) into a reliable byte stream.”
+> “Treat a UNIX signal as a **single-bit courier**. Your job is to turn two couriers (SIGUSR1/SIGUSR2) into a byte stream.”
 
 ---
 
@@ -27,7 +27,6 @@
 
 ## 1) Signal Communication
 
-- **What is a signal?** A small, asynchronous **event** delivered by the kernel to a process.
 - **What is a signal?** A small, asynchronous **notification** the kernel delivers to a process (or thread) to say “**something happened**.” It’s like a **software interrupt**: your program can be doing anything and a signal can arrive and briefly **divert** it to run a small **handler** function.
 
 ### Where do signals come from?
@@ -186,182 +185,47 @@ on_signal(sig, info):
 
 ## 7) Acknowledgment Protocol (pacing, flow control)
 
-- **Why ACK?** Because standard signals are **coalesced**. Without pacing, you **will** lose bits.
+- **Why ACK?** Because standard signals are **coalesced** (*multiple identical signals are merged into a single “pending” event—extras aren’t queued*). Without pacing, you **will** lose bits.
 - **Per-bit ACK** (Stop-and-Wait):
   - After processing **one bit**, the server **sends an ACK signal** (e.g., `SIGUSR2`) to the client’s PID.
   - The client **waits** until it sees the ACK, then sends the **next bit**.
 - **Timeouts**:
   - The client should not wait forever. Add a timeout while waiting for an ACK (the server might have died).
 - **Message ACK (optional)**:
+  - Sending a final ACK after '\0' creates an ordering risk (final before bit-ACK); handle it by treating the final ACK as the last-bit ACK.
   - Some designs send a **final ACK** (distinct signal) after `'\0'`. This can create a **race** with per-bit ACK for the last bit. If you keep it, design the client’s wait logic to accept the final ACK as satisfying the last per-bit wait.  
   - Simplest approach: **per-bit ACK only** (no final-ACK), avoiding that race.
 
 ---
 
-## 8) Race Conditions & Reliability
-
-**Common hazards and mitigations:**
-
-1) **Signal coalescing** (lost bits)  
-   - *Cause:* sending multiple identical signals faster than the receiver processes them.  
-   - *Fix:* **Stop-and-Wait** per-bit ACK. One bit in flight → no loss.
-
-2) **Reentrancy** (handler runs during handler)  
-   - *Cause:* you receive the other user signal while your handler is using shared state.  
-   - *Fix:* in `sigaction`, set `sa_mask` to block **both** SIGUSR1 and SIGUSR2 during the handler. Update state atomically (simple ints/bytes).
-
-3) **Multiple clients at once**  
-   - *Cause:* two different PIDs interleave bits.  
-   - *Fix:* record the **first** sender PID (`si_pid`) and **ignore** bits from others until you receive `'\0'`. This honors “several clients in a row” without interleaving.
-
-4) **End-of-message ACK race** (if you implement it)  
-   - *Cause:* server sends per-bit ACK and immediately sends a final message ACK; client may be waiting for per-bit ACK but sees final first.  
-   - *Fix:* either accept final ACK as satisfying the last per-bit wait, or **omit** message-level ACK. The latter is simpler.
-
-5) **Printing from the handler**  
-   - *Cause:* using `printf` or non-safe functions.  
-   - *Fix:* use **`write`** only. It’s async-signal-safe.
+## 8) Race Conditions (the essentials)
+- **Coalescing:** identical signals merge; stop-and-wait (per-bit ACK) prevents loss.
+- **Reentrancy:** block SIGUSR1/SIGUSR2 in the handler (`sa_mask`) so bit assembly isn’t interrupted mid-update.
 
 ---
 
-## 9) The Solution Strategy: Stop-and-Wait
-
-**Protocol (deterministic & reliable):**
-
-1) **Client sends one bit** using `SIGUSR1` (0) or `SIGUSR2` (1).
-2) **Server receives**, updates `(current_char, bit_count)`, then **ACKs** with a signal (e.g., `SIGUSR2`).
-3) **Client waits** until it sees the ACK; only then sends the **next bit**.
-4) Repeat for 8 bits → 1 byte.  
-   If byte is `'\0'`: server prints newline, **releases** current client PID, resets state; ready for next client.
-5) **Why it works:** at most **one** in-flight bit; delivery is lossless.
-
-```
-// Timeline example for one character (MSB-first):
-Client:  (bit7=1) → SIGUSR2 ────────────────► Server
-Server:                                  ACK ◄────────── SIGUSR2
-Client: (bit6=0) → SIGUSR1 ────────────────► Server
-Server:                                  ACK ◄────────── SIGUSR2
-...
-(repeat 8 times)
-```
+## 9) Multiple Clients (policy)
+- **One at a time:** the server locks to the first sender PID and **ignores others** until it receives `'\0'`.
+- Other clients will **timeout** if they try during an active transfer; they can retry after.
+- This satisfies “several clients **in a row**” without complex queuing.
 
 ---
 
-## 10) Multiple Clients (in a row, not concurrently)
-
-- **Requirement**: “The server should be able to receive strings from several clients **in a row** without restart.”
-- **Policy**:
-  - Track `current_sender_pid`.
-  - If `si_pid` differs from `current_sender_pid` **and** a message is in progress, **ignore** the bit. (Do not send an ACK; the intrusive client will time out and retry later.)
-  - When you receive `'\0'`, reset `current_sender_pid = 0`. The next client that contacts you becomes the active sender.
-
-This preserves protocol correctness and keeps the implementation simple and defendable.
+## 10) Robustness (quick)
+- Client validates PID (`kill(pid, 0)`), and has an **ACK timeout** to avoid hanging.
+- Server resets state on `'\0'` and never uses non–signal-safe calls in the handler.
 
 ---
 
-## 11) Unicode / UTF-8 (why “just bytes” works)
+### One global variable (why)
 
-- **UTF-8** is a variable-length encoding: ASCII characters are 1 byte, many symbols are 2–4 bytes.
-- You do **not** need to parse or understand code points. You are transporting **bytes**.  
-- The terminal will interpret those bytes as UTF-8 and render the character.
-- The **`'\0'`** terminator is a single byte `0x00`, and UTF-8 never embeds `0x00` inside a character, so it’s a safe message boundary.
+- POSIX handlers can’t take context and must avoid heap/stdio, so we need a tiny **persistent state**.
+- **Server:** one struct `{ sender_pid, current_byte, bit_count }` → lock the sender, assemble 8 bits, detect `'\0'`. It’s **one** global variable.
+- **Client:** one `volatile sig_atomic_t ack_flag` → set in the handler on ACK, polled by the sending loop.
+- Safety: block `SIGUSR1/SIGUSR2` in `sa_mask`; handler does only trivial stores + `kill`/`write`; reset state on `'\0'`.
 
----
+### Unicode / UTF-8
 
-## 12) Robustness & Error Handling
-
-**Client side:**
-- **PID validation**:
-  - Parse strictly (positive integer).
-  - Probe with `kill(pid, 0)`; on failure print a clear error and exit.
-- **Signal send failure**:
-  - If any `kill(pid, sig)` returns `-1`, abort cleanly—likely server died between bits.
-- **ACK timeout**:
-  - If ACK doesn’t arrive within a bounded number of small sleeps, print a timeout error and exit. Prevents infinite hangs.
-
-**Server side:**
-- **Handler safety**:
-  - Only async-signal-safe calls (`write`, `kill`) inside the handler; keep it short.
-- **State reset**:
-  - After `'\0'`: print newline, reset sender PID and byte assembly state.
-- **Ignore interlopers**:
-  - If a second client speaks mid-message, ignore its signals (no ACK) to maintain message integrity.
-
----
-
-## 13) Performance & Timing
-
-- **Cost per character**:
-  - 8 client→server signals + 8 server→client ACKs = **16 signals** per char.
-- **Throughput** depends on:
-  - Handler latency (very small if it just flips a few bits + write),
-  - Client ACK polling sleep (e.g., 1 ms),
-  - Context switch overhead.
-- **Rule of thumb**:
-  - Keep the per-ACK polling sleep short (hundreds of microseconds to a couple milliseconds).
-  - Avoid extra sleeps between bytes—ACK already paces you.
-- **Judge’s hint**:
-  - “If 100 characters take ~1 s, you’re too slow.”  
-  - With efficient handlers and ~1 ms polling, you’ll comfortably beat this.
-
----
-
-## 14) Memory Model & Globals
-
-- **Why a global at all?** POSIX signal handlers don’t accept user data; state must persist across interrupts and be accessible from the handler. Heap allocations in a handler are unsafe.  
-- **Server global**:
-  - A **single** struct:
-    - `client_pid` (who we’re serving),
-    - `current_char` (byte under construction),
-    - `bit_count` (how many bits accumulated).
-  - This is **one** variable (not “three”), complying with “one global per program”.
-- **Client global**:
-  - `volatile sig_atomic_t ack_flag` (or similar).
-  - `sig_atomic_t` ensures atomic read/write relative to signals; `volatile` prevents compiler optimizations that would cache the value.
-
-**Note:** `volatile sig_atomic_t` is not a full memory barrier, but it’s sufficient here: a single boolean handoff between handler and main loop.
-
----
-
-## 15) Handler Design Patterns (state, masking, printing policy)
-
-**Masking to avoid reentrancy**:
-- In `sigaction`, set `sa_mask` to include **both** `SIGUSR1` and `SIGUSR2`. While the handler runs, the other signal is blocked. This prevents corruption of `(current_char, bit_count)`.
-
-**Printing policy**:
-- **Byte-complete printing**:
-  - After assembling 8 bits, immediately `write` the completed byte (unless it’s `'\0'`).
-  - This streams output (no buffering), avoids heap, and is safe in handlers.
-
-**End-of-message**:
-- On `'\0'`: `write("\n")`, set `client_pid = 0` to release the slot, reset byte state.
-
-**ACK timing**:
-- Send per-bit ACK **after** you update the byte state (so the sender never gets ahead of you).
-- This creates a “lockstep” pipeline: send → process → ACK → send next.
-
----
-
-## 16) Debugging & Troubleshooting
-
-**Symptom: missing characters**  
-- *Cause:* No per-bit ACK; too-small sleeps; signal coalescing.  
-- *Fix:* Implement per-bit ACK; ensure the client really **waits** before sending next bit.
-
-**Symptom: client hangs forever waiting for ACK**  
-- *Cause:* Server died mid-flight; wrong PID; server policy ignoring a second client.  
-- *Fix:* Add a client-side **timeout**; verify PID; ensure you’re not colliding with an ongoing transmission.
-
-**Symptom: gibberish characters**  
-- *Cause:* Assembling bits in the wrong order (MSB/LSB mismatch), or reentrant clobbering due to missing handler mask.  
-- *Fix:* Standardize on MSB→LSB; set `sa_mask` to block both signals during handler.
-
-**Symptom: crashes or weird I/O in handler**  
-- *Cause:* Using non–signal-safe functions (e.g., `printf`, `malloc`).  
-- *Fix:* Use only `write`, `kill`, and trivial state updates.
-
-**Symptom: can’t send from two clients back-to-back**  
-- *Cause:* Server didn’t reset `client_pid` on `'\0'`.  
-- *Fix:* On end-of-message, print newline, reset sender PID and byte state.
-
----
+- We transmit **bytes**; UTF-8 chars (1–4 bytes) pass through unchanged.
+- `'\0'` marks end-of-message (UTF-8 never contains `0x00` inside a code point).
+- Tip: use `unsigned char` when extracting bits to avoid sign issues.
