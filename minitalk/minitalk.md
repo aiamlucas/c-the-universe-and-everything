@@ -11,23 +11,20 @@
 3. Signal Delivery Semantics (pending set, coalescing, masks)
 4. Signal Handlers (disposition, SA_SIGINFO, async-signal-safety)
 5. Binary Encoding (bits → bytes, bit order vs endianness)
-6. Bit-by-Bit Transmission (LSB/MSB choices, assembly)
+6. Bit-by-Bit Transmission (assembly logic)
 7. Acknowledgment Protocol (pacing, flow control)
-8. Race Conditions & Reliability (coalescing, reentrancy, “busy server”)
-9. The Solution Strategy: Stop-and-Wait
-10. Multiple Clients (in a row, not concurrently)
-11. Unicode / UTF-8 (why “just bytes” works)
-12. Robustness & Error Handling (timeouts, wrong PIDs, mid-flight failures)
-13. Performance & Timing (latency vs throughput, sizing sleeps)
-14. Memory Model & Globals (why exactly one global, `volatile sig_atomic_t`)
-15. Handler Design Patterns (state, masking, printing policy)
-16. Debugging & Troubleshooting (symptoms → causes)
+8. Race Conditions (the essentials)
+9. Multiple Clients (policy)
+10. Robustness (quick)
+11. One Global Variable (why)
+12. Unicode / UTF-8
 
 ---
 
 ## 1) Signal Communication
 
-- **What is a signal?** A small, asynchronous **notification** the kernel delivers to a process (or thread) to say “**something happened**.” It’s like a **software interrupt**: your program can be doing anything and a signal can arrive and briefly **divert** it to run a small **handler** function.
+**What is a signal?** It's a small, asynchronous **notification** the kernel delivers to a process (or thread) to say “**something happened**.” 
+It’s like a **software interrupt**: your program can be doing anything and a signal can arrive and briefly **divert** it to run a small **handler** function.
 
 ### Where do signals come from?
 
@@ -52,7 +49,6 @@ kill(server_pid, SIGUSR1);   // no payload, just "an event"
 - **You must encode information using only these.** The canonical mapping is:
   - `SIGUSR1` ⇒ bit **0**
   - `SIGUSR2` ⇒ bit **1**
-- **Key constraint on Linux:** standard (non–real-time) signals are **not queued per-instance**. If multiple of the same type arrive while one is pending, they appear as **one**. This is the root cause of “lost bits unless paced.”
 
 ---
 
