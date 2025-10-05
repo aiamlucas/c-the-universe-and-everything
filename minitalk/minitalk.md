@@ -213,14 +213,14 @@ on_signal(sig, info):
 
 ---
 
-### One global variable (why)
+## 11) One global variable (why)
 
 - POSIX handlers can’t take context and must avoid heap/stdio, so we need a tiny **persistent state**.
 - **Server:** one struct `{ sender_pid, current_byte, bit_count }` → lock the sender, assemble 8 bits, detect `'\0'`. It’s **one** global variable.
 - **Client:** one `volatile sig_atomic_t ack_flag` → set in the handler on ACK, polled by the sending loop.
 - Safety: block `SIGUSR1/SIGUSR2` in `sa_mask`; handler does only trivial stores + `kill`/`write`; reset state on `'\0'`.
 
-### Unicode / UTF-8
+## 12) Unicode / UTF-8
 
 - We transmit **bytes**; UTF-8 chars (1–4 bytes) pass through unchanged.
 - `'\0'` marks end-of-message (UTF-8 never contains `0x00` inside a code point).
