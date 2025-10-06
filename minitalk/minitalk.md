@@ -52,6 +52,45 @@ kill(server_pid, SIGUSR1);   // no payload, just "an event"
 
 ---
 
+### Common UNIX Signals
+
+Before focusing on `SIGUSR1` and `SIGUSR2`, here’s a quick reference of the most common POSIX signals.  
+Use this to understand what types of signals exist, their default behavior, and what usually triggers them.
+
+| **Signal** | **Value (POSIX)** | **Default Action** | **Description / Typical Cause**                 |
+|------------|-------------------|--------------------|-------------------------------------------------|
+| `SIGHUP`   | 1                 | Terminate          | Terminal hangup or controlling terminal closed  |
+| `SIGINT`   | 2                 | Terminate          | Interrupt from keyboard (``` Ctrl+C ```)        |
+| `SIGQUIT`  | 3                 | Core dump          | Quit from keyboard (``` Ctrl+\ ```)             |
+| `SIGILL`   | 4                 | Core dump          | Illegal instruction                             |
+| `SIGABRT`  | 6                 | Core dump          | Abort from ``` abort() ```                      |
+| `SIGBUS`   | 7                 | Core dump          | Bus error (bad memory access)                   |
+| `SIGFPE`   | 8                 | Core dump          | Floating-point exception (divide by zero, etc.) |
+| `SIGKILL`  | 9                 | Terminate          | Immediate kill (cannot be handled or ignored)   |
+| `SIGUSR1`  | 10                | Terminate          | User-defined signal #1 (free for app use)       |
+| `SIGSEGV`  | 11                | Core dump          | Invalid memory reference (segmentation fault)   |
+| `SIGUSR2`  | 12                | Terminate          | User-defined signal #2 (free for app use)       |
+| `SIGPIPE`  | 13                | Terminate          | Write to a pipe with no reader                  |
+| `SIGALRM`  | 14                | Terminate          | Timer signal from ``` alarm() ```               |
+| `SIGTERM`  | 15                | Terminate          | Graceful termination request                    |
+| `SIGCHLD`  | 17                | Ignore             | Child process stopped or terminated             |
+| `SIGCONT`  | 18                | Continue           | Continue if stopped                             |
+| `SIGSTOP`  | 19                | Stop               | Stop process (cannot be handled or ignored)     |
+| `SIGTSTP`  | 20                | Stop               | Stop from keyboard (``` Ctrl+Z ```)             |
+| `SIGTTIN`  | 21                | Stop               | Background process read from tty                |
+| `SIGTTOU`  | 22                | Stop               | Background process write to tty                 |
+
+>  **Note:**  
+> Signal numbers may vary slightly depending on the OS (Linux, macOS, BSD).  
+> You can check your system’s exact list with:  
+> ``` man 7 signal ```
+
+---
+
+**In Minitalk**, only `SIGUSR1` and `SIGUSR2` are used — they are *user-defined* signals, meaning you can assign them custom meaning.  
+Here, they represent binary **0** and **1**, forming the basis of the signal-based communication protocol.
+
+
 ## 2) Process IDs & `kill()`
 
 - **PID**: Kernel identifier of a running process.
