@@ -103,6 +103,66 @@ Here, they represent binary **0** and **1**, forming the basis of the signal-bas
 
 ---
 
+## 2.5) The `sigaction()` System Call
+
+`sigaction()` is the modern, reliable way to install signal handlers in UNIX-like systems.  
+It replaces the old `signal()` function, which had inconsistent behavior across systems.
+
+### Purpose
+It defines *how your program reacts* when a specific signal is delivered, whether it should:
+- run a custom handler function,
+- ignore the signal, or
+- restore the default action.
+
+### Function prototype
+
+```
+int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
+```
+
+- **`signum`** — which signal to handle (e.g. `SIGUSR1`, `SIGINT`, etc.)
+- **`act`** — pointer to a structure defining the new behavior
+- **`oldact`** — (optional) pointer to save the previous behavior
+
+### Structure
+```
+struct sigaction {
+    void     (*sa_handler)(int);             // Simple handler
+    void     (*sa_sigaction)(int, siginfo_t *, void *); // Extended handler (SA_SIGINFO)
+    sigset_t sa_mask;                        // Signals to block during handler
+    int      sa_flags;                       // Flags modifying behavior
+};
+```
+
+### Key Flags
+| **Flag** | **Meaning** |
+|-----------|-------------|
+| `SA_SIGINFO` | Use `sa_sigaction` instead of `sa_handler`; provides `siginfo_t` with sender PID. |
+| `SA_RESTART` | Automatically restarts certain interrupted system calls after the handler returns. |
+| `SA_NODEFER` | Don’t block the signal currently being handled (rarely used). |
+| `SA_RESETHAND` | Restore default disposition after the first signal (one-shot). |
+
+### Typical setup for Minitalk
+```
+struct sigaction sa;
+sa.sa_sigaction = handler;          // use 3-arg handler
+sigemptyset(&sa.sa_mask);           // start with empty mask
+sigaddset(&sa.sa_mask, SIGUSR1);    // block USR1 during handler
+sigaddset(&sa.sa_mask, SIGUSR2);    // block USR2 during handler
+sa.sa_flags = SA_SIGINFO;           // use siginfo_t -> si_pid
+sigaction(SIGUSR1, &sa, NULL);      // link SIGUSR1 to 'handler' (bit = 0)
+sigaction(SIGUSR2, &sa, NULL);      // link SIGUSR2 to 'handler' (bit = 1)
+```
+
+> **In Minitalk:**  
+> `sigaction()` tells the kernel:  
+> “When my process receives `SIGUSR1` or `SIGUSR2`, call *this handler* instead of killing me.”  
+>  
+> The mask (`sa_mask`) ensures your handler isn’t interrupted by another signal mid-update,  
+> and `SA_SIGINFO` allows access to the sender PID (`info->si_pid`), which is essential for acknowledging bits.
+
+---
+
 ## 3) Signal Delivery Semantics (pending set, coalescing, masks)
 
 ### Pending set (coalescing)
