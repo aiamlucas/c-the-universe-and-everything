@@ -152,6 +152,7 @@ Take one bit from the character by creating a mask with only that bit set to `1`
 **Example:**  
 Character `A` → 65 → `01000001`
 
+```
 | bit_position | (1 << bit_position) | c (01000001) | c & mask | bit_value (0/1) |
 |      7       | 10000000            | 01000001     | 00000000 |       0         |
 |      6       | 01000000            | 01000001     | 01000000 |       1         |
@@ -161,6 +162,7 @@ Character `A` → 65 → `01000001`
 |      2       | 00000100            | 01000001     | 00000000 |       0         |
 |      1       | 00000010            | 01000001     | 00000000 |       0         |
 |      0       | 00000001            | 01000001     | 00000001 |       1         |
+```
 
 **Result:**  
 → `bit_value` = 1 for positions 6 and 0 → these bits are sent as **SIGUSR2**  
