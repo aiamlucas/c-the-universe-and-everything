@@ -10,12 +10,12 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 - [Arrays](c/arrays/arrays.md)
 - [Two Dimensional Arrays](c/arrays/two-dimensional-arrays/two-dimensional-arrays.md)
+- [Fractol](c/fractol/fractol.md)
+- [Ft_printf Exploration](c/ft_printf/ft_printf-exploration.md)
+- [Libft Bonus Linked Lists And Structs](c/libft/libft-bonus-linked-lists-and-structs.md)
+- [Libft Exploration](c/libft/libft-exploration.md)
 - [Pointers](c/pointers/pointers.md)
 - [Structs](c/structs/structs.md)
-- [Libft Exploration](c/libft/libft-exploration.md)
-- [Libft Bonus Linked Lists And Structs](c/libft/libft-bonus-linked-lists-and-structs.md)
-- [Ft_printf Exploration](c/ft_printf/ft_printf-exploration.md)
-- [Fractol](c/fractol/fractol.md)
 
 ### Get-Next-Line
 
@@ -32,6 +32,7 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 ### Minitalk
 
 - [Minitalk](minitalk/minitalk.md)
+- [Project Documentation](minitalk/project-documentation.md)
 
 ### Shell
 
