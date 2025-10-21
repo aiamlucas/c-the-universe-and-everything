@@ -26,6 +26,7 @@
 
 
 ### The Round Table Setup
+
 ```
                    🥢0
              Phi4        Phi0
@@ -48,6 +49,7 @@ With 5 philosophers arranged in a circle:
 ```
 
 ### The Setup
+
 - **N philosophers** sit at a round table
 - **N chopsticks** placed between them (one between each pair)
 - Each philosopher alternates between three activities:
@@ -56,12 +58,14 @@ With 5 philosophers arranged in a circle:
   - **SLEEPING** (requires no chopsticks)
 
 ### The Challenge
+
 - Philosophers **share chopsticks** (limited resources)
 - They **don't communicate** with each other
 - They **must not starve** (die from not eating)
 - The system **must not deadlock**  (all threads stuck waiting for each other in a circle → nobody can proceed)
 
 ### Real-World Analogy
+
 Think of it like multiple programs trying to access shared resources (files, memory, network connections). If not coordinated properly, they can:
 - **Deadlock**: all waiting for each other
 - **Starve**: some processes never get resources
@@ -84,6 +88,7 @@ Before diving into processes and threads, it’s important to understand how the
 | **Software Thread**  | The thread you create in your program (e.g., using `pthread_create`). The operating system scheduler assigns these to hardware threads.      |
 
 ### Example: Ryzen 7 CPU
+
 Let’s take an AMD Ryzen 7 5800X as a real-world example:
 
 | **Property**                  | **Value**                  |
@@ -97,6 +102,7 @@ So the operating system sees 16 logical CPUs, meaning up to 16 software threads 
 If you create more than 16 threads, the OS will time-slice them, giving each a short turn on the cores.
 
 ### How Execution Works
+
 1. Each core can run one (or two with SMT/Hyper-Threading) threads at once.  
 2. The operating system scheduler decides which software threads run on which cores.  
 3. If there are more threads than cores, the OS quickly switches between them (context switching).  
@@ -225,6 +231,7 @@ int pthread_detach(pthread_t thread);
 - **Use case**: If you don't care about thread's return value
 
 ### Thread Lifecycle
+
 ```
 [CREATED] --pthread_create()--> [RUNNING] --function returns--> [TERMINATED]
                                     |
@@ -257,6 +264,7 @@ int main(void)
 ## 5) Mutexes (Mutual Exclusion)
 
 ### What is a Mutex?
+
 A **mutex** (mutual exclusion lock) is like a **lock on a door**. Only one thread can hold the lock at a time.
 
 **In Philosophers**: Each Chopstick is protected by a mutex.
@@ -295,6 +303,7 @@ pthread_mutex_init(&chopstick_mutex, NULL);  // NULL = default attributes
 ```
 
 #### `pthread_mutex_destroy()`
+
 Destroys a mutex (frees resources).
 
 ```
@@ -305,6 +314,7 @@ pthread_mutex_destroy(&chopstick_mutex);
 ```
 
 #### `pthread_mutex_lock()`
+
 Acquires the mutex (blocks if already locked).
 
 ```
@@ -317,6 +327,7 @@ pthread_mutex_unlock(&chopstick_mutex);
 ```
 
 #### `pthread_mutex_unlock()`
+
 Releases the mutex.
 
 ```
@@ -350,6 +361,7 @@ Without the mutex, `shared_counter` would have a **race condition** and the fina
 ## 6) Race Conditions
 
 ### What is a Race Condition?
+
 When **multiple threads access shared data** and at least one is **writing**, and the **outcome depends on timing**.
 
 ### Example: The Classic Race
@@ -394,9 +406,11 @@ pthread_mutex_unlock(&Chopstick[left]);
 ## 7) Deadlock
 
 ### What is Deadlock?
+
 When **all threads are waiting** for resources held by each other → **nobody can proceed**.
 
 ### The Classic Philosophers Deadlock
+
 ```
 Philosopher 1: Holds Chopstick 1, wants Chopstick 2
 Philosopher 2: Holds Chopstick 2, wants Chopstick 3
@@ -407,6 +421,7 @@ Philosopher 4: Holds Chopstick 4, wants Chopstick 1
 **Everyone is waiting. Forever. Deadlock.**
 
 ### Deadlock Conditions (All 4 must be true)
+
 1. **Mutual Exclusion**: Resources can't be shared (chopsticks can't be split)
 2. **Hold and Wait**: Thread holds resources while waiting for more
 3. **No Preemption**: Can't forcibly take resources from a thread
@@ -451,12 +466,15 @@ if (philo_id % 2 == 1)
 ## 8) Thread Synchronization Patterns
 
 ### Pattern 1: Stop-and-Wait (Used in Minitalk)
+
 One signal at a time with acknowledgment.
 
 ### Pattern 2: Producer-Consumer
+
 One thread produces data, another consumes it (needs condition variables - not for this project).
 
 ### Pattern 3: All-Start-Together
+
 All threads start simultaneously, but coordinate with timing/mutexes. (ideal for the philosophers project)
 
 ```
@@ -498,6 +516,7 @@ void *philosopher_routine(void *arg)
 ## 9) Time Management
 
 ### `gettimeofday()`
+
 Gets current time with microsecond precision.
 
 ```
@@ -521,6 +540,7 @@ long long get_time_ms(void)
 ```
 
 ### `usleep()`
+
 Suspends execution for microseconds.
 
 ```
@@ -570,6 +590,7 @@ if (time_since_meal > philo->time_to_die)
 ## 10) Data Races vs Race Conditions
 
 ### Data Race
+
 **Simultaneous access** to the same memory location by multiple threads, where at least one is writing, **with no synchronization**.
 
 ```
@@ -582,6 +603,7 @@ x = 1;                   x = 2;
 ```
 
 ### Race Condition
+
 **The outcome depends on timing** of thread execution.
 
 ```
@@ -594,6 +616,7 @@ if (account_balance >= 100)         if (account_balance >= 100)
 ```
 
 ### In Philosophers
+
 - **Data race**: Reading/writing to `last_meal_time` without mutex protection
 - **Race condition**: Two philosophers trying to grab the same Chopstick at once
 
