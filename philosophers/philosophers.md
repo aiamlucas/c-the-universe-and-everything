@@ -66,7 +66,9 @@ With 5 philosophers arranged in a circle:
 
 ### Real-World Analogy
 
-Think of it like multiple programs trying to access shared resources (files, memory, network connections). If not coordinated properly, they can:
+Think of it like multiple programs trying to access shared resources (files, memory, network connections). 
+If not coordinated properly, they can:
+
 - **Deadlock**: all waiting for each other
 - **Starve**: some processes never get resources
 - **Race**: corrupt data by simultaneous access
@@ -113,7 +115,7 @@ If you create more than 16 threads, the OS will time-slice them, giving each a s
 ### Threads and CPU Cores
 
 Each thread represents a sequence of instructions that the CPU can execute.  
-Modern CPUs have multiple cores, and each core can run one or more threads at the same time (thanks to hyper-threading or SMT).
+Modern CPUs have multiple cores and each core can run one or more threads at the same time (thanks to hyper-threading or SMT).
 
 | **Concept**           | **Explanation**                                                                                                        |
 |-----------------------|------------------------------------------------------------------------------------------------------------------------|
@@ -362,7 +364,7 @@ Without the mutex, `shared_counter` would have a **race condition** and the fina
 
 ### What is a Race Condition?
 
-When **multiple threads access shared data** and at least one is **writing**, and the **outcome depends on timing**.
+When **multiple threads access shared data** and at least one is **writing** and the **outcome depends on timing**.
 
 ### Example: The Classic Race
 
