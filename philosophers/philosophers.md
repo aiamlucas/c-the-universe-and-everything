@@ -79,7 +79,6 @@ If not coordinated properly, they can:
 
 Before diving into processes and threads, it’s important to understand how the CPU actually runs them.
 
-
 ### The CPU Hierarchy
 
 | **Component**        | **Description**                                                                                                                              |
@@ -123,7 +122,7 @@ Modern CPUs have multiple cores and each core can run one or more threads at the
 | **Thread**            | A lightweight task that the OS scheduler assigns to a CPU core for execution.                                          |
 | **Parallelism**       | Multiple threads can run truly simultaneously if there are multiple cores available.                                   |
 | **Context Switching** | If there are more threads than cores, the OS quickly switches between them to give the illusion of parallelism.        |
-| **Performance Note**  | More threads ≠ always faster — performance depends on how much real parallel work exists and synchronization overhead. |
+| **Performance Note**  | More threads ≠ always faster. Performance depends on how much real parallel work exists and synchronization overhead. |
 
 
 ### Example
@@ -185,7 +184,8 @@ for (int i = 0; i < n_philos; i++)
 ## 4) POSIX Threads (pthreads)
 
 ### What is a Thread?
-A **thread** is a **separate flow of execution** within the same program. Think of it like having multiple workers in the same office (shared memory) doing different tasks simultaneously.
+A **thread** is a **separate flow of execution** within the same program.
+Think of it like having multiple workers in the same office (shared memory) doing different tasks simultaneously.
 
 ### Key Thread Functions
 
@@ -324,7 +324,7 @@ int pthread_mutex_lock(pthread_mutex_t *mutex);
 
 // Thread will WAIT here if another thread holds the lock
 pthread_mutex_lock(&chopstick_mutex);
-// Critical section - only one thread at a time
+// Critical section, only one thread at a time
 pthread_mutex_unlock(&chopstick_mutex);
 ```
 
@@ -473,7 +473,7 @@ One signal at a time with acknowledgment.
 
 ### Pattern 2: Producer-Consumer
 
-One thread produces data, another consumes it (needs condition variables - not for this project).
+One thread produces data, another consumes it (needs condition variables, not for this project).
 
 ### Pattern 3: All-Start-Together
 
