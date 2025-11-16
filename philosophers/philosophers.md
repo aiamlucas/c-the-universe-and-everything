@@ -473,11 +473,11 @@ One signal at a time with acknowledgment.
 
 ### Pattern 2: Producer-Consumer
 
-One thread produces data, another consumes it (needs condition variables, not for this project).
+One thread produces data, another consumes it
 
 ### Pattern 3: All-Start-Together
 
-All threads start simultaneously, but coordinate with timing/mutexes. (ideal for the philosophers project)
+All threads start simultaneously, but coordinate with timing/mutexes.
 
 ```
 // Create all threads first
@@ -660,4 +660,3 @@ int gettimeofday(struct timeval *tv, struct timezone *tz);
 int usleep(useconds_t microseconds);
 ```
 ---
-
