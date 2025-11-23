@@ -253,10 +253,6 @@ vi( - Visually select inside parentheses
 
 > ip - Indent paragraph
 
----
-
-## Pro Tips
-
 ### Common LSP Workflow
 
 1. **See error** -> Cursor on error -> `<leader>ca` (code action) -> auto-fix!
@@ -292,9 +288,8 @@ If you're new, focus on these **top 10**:
 4. `<leader>ca` - Code action (auto-fix)
 5. `gcc` - Comment line
 6. `;r` - Search text
-7. `<leader>e` - File tree
-8. `Ctrl+o` - Go back
-9. `<leader>cr` - Rename
-10. `]d` - Next error
+7. `Ctrl+o` - Go back
+8. `<leader>cr` - Rename
+9. `]d` - Next error
 
 ---
