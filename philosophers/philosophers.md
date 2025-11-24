@@ -29,23 +29,23 @@
 
 ```
                    🥢0
-             Phi4        Phi0
+             Phi5        Phi1
 
            🥢4              🥢1
                     
-         Phi3                Phi1
+         Phi4                Phi2
                   
              🥢3            🥢2
                  
-                    Phi2
+                    Phi3
 
 
 With 5 philosophers arranged in a circle:
-- Phi0 needs 🥢0 (left) and 🥢1 (right)
-- Phi1 needs 🥢1 (left) and 🥢2 (right)
-- Phi2 needs 🥢2 (left) and 🥢3 (right)
-- Phi3 needs 🥢3 (left) and 🥢4 (right)
-- Phi4 needs 🥢4 (left) and 🥢0 (right) ← wraps around!
+- Phi1 needs 🥢0 (left) and 🥢1 (right)
+- Phi2 needs 🥢1 (left) and 🥢2 (right)
+- Phi3 needs 🥢2 (left) and 🥢3 (right)
+- Phi4 needs 🥢3 (left) and 🥢4 (right)
+- Phi5 needs 🥢4 (left) and 🥢0 (right) ← wraps around!
 ```
 
 ### The Setup
