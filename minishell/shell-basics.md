@@ -70,7 +70,7 @@ words, operators, quotes, and `$`.
 
 ### 2.1 Rules for Splitting Tokens
 
-#### Rule 1 — Whitespace separates tokens
+#### Rule 1: Whitespace separates tokens
 
 ```
 $ echo hello world
@@ -81,7 +81,7 @@ Tokens:
 - hello  
 - world
 
-#### Rule 2 — Pipes & redirections are ALWAYS separate tokens
+#### Rule 2: Pipes & redirections are ALWAYS separate tokens
 
 ```
 $ echo hi>out.txt
@@ -93,7 +93,7 @@ Tokens:
 - \>  
 - out.txt
 
-#### Rule 3 — Single quotes ('...') preserve everything
+#### Rule 3: Single quotes ('...') preserve everything
 
 ```
 $ echo 'hello | world $USER'
@@ -102,7 +102,7 @@ $ echo 'hello | world $USER'
 Token:
 - 'hello | world $USER'
 
-#### Rule 4 — Double quotes preserve everything except `$`
+#### Rule 4: Double quotes preserve everything except `$`
 
 ```
 $ echo "Hello $USER"
@@ -112,10 +112,10 @@ Tokens:
 - echo  
 - "Hello $USER"
 
-#### Rule 5 — `$` starts expansion  
+#### Rule 5: `$` starts expansion  
 (handled later)
 
-#### Rule 6 — `<<` and `>>` are single tokens
+#### Rule 6: `<<` and `>>` are single tokens
 
 ```
 $<< EOF
@@ -125,7 +125,7 @@ Tokens:
 - <<  
 - EOF
 
-#### Rule 7 — Words stop at unquoted operators
+#### Rule 7: Words stop at unquoted operators
 
 ```
 $ cat<file
