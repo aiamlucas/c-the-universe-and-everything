@@ -1,27 +1,323 @@
-# The Shell should 
+# Bash Behavior & Shell Stages
 
-## Display a prompt when waiting for a new command
+## 1. Explaining Bash
 
-- The shell runs in a loop, waiting for the user to type a command.
-- It must show a prompt string (e.g., minishell$ ) whenever it is ready to receive user input.
-- This prompt should appear at startup and after each executed command.
-- It should not appear while running commands that take control of the terminal (e.g., cat waiting for input), only when returning to the shell loop.
+### 1.1 Input Handling (readline)
 
-## Have a working history
+- **Empty line → prints a new prompt**
 
-## Search and launch the right executable (based on the PATH variable or using a relative or an absolute path)
+```
+$
+$
+```
 
-- The shell must determine the correct executable to run based on the PATH environment variable.
-- If the user provides a relative or absolute path (e.g., ./script or /bin/ls), the shell must execute the file directly.
-- If the command is not a builtin, minishell must search each directory in PATH until it finds a matching executable.
-  - For example, running ``` cat ``` should cause the shell to search the PATH directories (e.g., /bin, /usr/bin) until it finds the executable (typically /bin/cat).
-- If the executable cannot be found or cannot be executed, the shell must display an appropriate error message.
-- The program should use system calls such as ``` access() ``` and ``` execve() ``` to validate and execute commands.
+- **Whitespaces only → bash ignores them and prints a new prompt**
 
-## Use at most one global variable to indicate a received signal
+```
+$
+$
+```
 
-- The shell may use only **one** global variable, and it must be used exclusively to store the number of the received signal.
-  - This variable can be of type ``` volatile sig_atomic_t ```, which is safe to modify inside a signal handler.
-- This global variable must **not** store any additional information and must not provide access to other data or program state.
-- The signal handler must not interact with minishell’s internal data structures; it should only update this single global variable.
-- Global structures, arrays, pointers, or multiple global variables are forbidden, as they would allow the handler to access internal program state.
+- **Ctrl+C (in empty prompt → new line + new prompt)**
+
+```
+$ ^C
+$
+```
+
+- **Ctrl+C (with typed text → clear line + new prompt)**
+
+```
+$ sometext^C
+$
+```
+
+- **Ctrl+D (in empty prompt → exit shell)**
+
+```
+$
+exit
+```
+
+- **Ctrl+D (with typed text → does nothing)**
+
+```
+$ sometext
+```
+
+- **Ctrl+\ (in empty prompt → does nothing)**
+
+```
+$
+```
+
+- **Ctrl+\ (during a running command → sends SIGQUIT)**
+
+```
+$ cat
+hello
+hello
+^\Quit (core dumped)
+$
+```
+
+---
+
+## 2. Lexing / Tokenizing
+
+Tokenizing breaks the user’s input into *tokens*:  
+words, operators, quotes, and `$`.
+
+### 2.1 Rules for Splitting Tokens
+
+#### Rule 1 — Whitespace separates tokens
+
+```
+$ echo hello world
+```
+
+Tokens:
+- echo  
+- hello  
+- world
+
+#### Rule 2 — Pipes & redirections are ALWAYS separate tokens
+
+```
+$ echo hi>out.txt
+```
+
+Tokens:
+- echo  
+- hi  
+- >  
+- out.txt
+
+#### Rule 3 — Single quotes ('...') preserve everything
+
+```
+$ echo 'hello | world $USER'
+```
+
+Token:
+- 'hello | world $USER'
+
+#### Rule 4 — Double quotes preserve everything except `$`
+
+```
+$ echo "Hello $USER"
+```
+
+Tokens:
+- echo  
+- "Hello $USER"
+
+#### Rule 5 — `$` starts expansion  
+(handled later)
+
+#### Rule 6 — `<<` and `>>` are single tokens
+
+```
+$<< EOF
+```
+
+Tokens:
+- <<  
+- EOF
+
+#### Rule 7 — Words stop at unquoted operators
+
+```
+$ cat<file
+```
+
+Tokens:
+- cat  
+- <  
+- file
+
+---
+
+## 3. Parsing
+
+Parsing organizes tokens into a structure containing:
+- commands  
+- arguments  
+- redirections  
+- pipelines  
+
+### Example
+
+Input:
+
+```
+$ ls -l | grep txt > out.txt
+```
+
+Tokens:  
+ls, -l, |, grep, txt, >, out.txt
+
+Parsed representation:
+
+```
+PIPELINE
+Command 1:
+  name: ls
+  args: ["ls", "-l"]
+  redirections: none
+
+Command 2:
+  name: grep
+  args: ["grep", "txt"]
+  redirections:
+      stdout → out.txt (overwrite)
+```
+
+Parser algorithm:
+1. First word starts a command.  
+2. Following words are arguments.  
+3. Redirection → attach filename.  
+4. Pipe → end command, start next.  
+5. Continue until tokens end.
+
+---
+
+## 4. Expansion
+
+Expansion happens **after parsing**, before quote removal.
+
+### Types of Expansion
+- `$VAR` environment variable  
+- `$?` last exit code  
+- expansion inside `" "`  
+- **no expansion inside `' '`**  
+- undefined variable → empty string  
+
+---
+
+### Rules
+
+#### 1. `$VAR` → variable value
+
+```
+$ echo $HOME
+ssin
+```
+
+#### 2. `$?` → exit status
+
+```
+$ echo $?
+2
+```
+
+#### 3. Expansion inside double quotes
+
+```
+$ export USER=ssin
+$ echo "User: $USER"
+User: ssin
+```
+
+#### 4. No expansion in single quotes
+
+```
+$ echo '$USER'
+$USER
+```
+
+#### 5. Undefined variable → empty string
+
+```
+$ echo "$DOES_NOT_EXIST"
+```
+
+(empty output)
+
+#### 6. Expansion can change argument count (word splitting)
+
+```
+$ PATH="/bin /usr/bin"
+$ echo $PATH
+/bin /usr/bin
+```
+
+Two arguments.
+
+Quoted:
+
+```
+$ echo "$PATH"
+/bin /usr/bin
+```
+
+printf demonstration:
+
+```
+$ printf "[%s]\n" $PATH
+[/bin]
+[/usr/bin]
+
+$ printf "[%s]\n" "$PATH"
+[/bin /usr/bin]
+```
+
+#### 7. Minishell does NOT implement:
+- `{}` brace expansion  
+- `$(( ))` arithmetic  
+- `$(...)` command substitution  
+- `~` tilde expansion  
+
+Only `$VAR` and `$?`.
+
+---
+
+## 5. Quote Removal
+
+After expansion:
+- quotes are stripped  
+- expanded values remain  
+- `' '` prevents expansion but still gets removed  
+
+### Examples
+
+#### Single quotes → no expansion, quotes removed
+
+Input:
+
+```
+$ echo '$USER'
+```
+
+After quote removal:  
+`$USER`
+
+#### Double quotes → allow expansion, then removed
+
+USER=alice
+
+```
+$ echo "User: $USER"
+```
+
+Final:  
+`User: alice`
+
+#### Mixed quoting example
+
+```
+$ echo "'hello' "$USER
+```
+
+Final arguments:
+- `'hello'`  
+- `alice`
+
+---
+
+## TODO
+- 6 — Redirections  
+- 7 — Execution  
+- 8 — Pipelines  
+- 9 — Exit status loop  
+
