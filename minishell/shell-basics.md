@@ -90,7 +90,7 @@ $ echo hi>out.txt
 Tokens:
 - echo  
 - hi  
-- >  
+- \>  
 - out.txt
 
 #### Rule 3 — Single quotes ('...') preserve everything
