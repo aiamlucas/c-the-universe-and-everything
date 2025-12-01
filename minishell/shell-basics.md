@@ -315,9 +315,316 @@ Final arguments:
 
 ---
 
+# 6. Redirections
+
+Redirections allow a command to read from or write to files instead of the terminal.
+
+Minishell must support:
+
+- Input redirection: `<`
+- Output redirection (overwrite): `>`
+- Output redirection (append): `>>`
+- Heredoc: `<<`
+
+Redirections always belong **to the command immediately before them** (unless it's the first token).
+
+---
+
+## 6.1 Input Redirection `<`
+
+Syntax:
+
+`command < file`
+
+This replaces the command’s STDIN (fd 0) with the contents of the file.
+
+Example:
+
+```
+$ cat < input.txt
+```
+
+Implementation steps:
+1. `open(file, O_RDONLY)`
+2. `dup2(fd, STDIN_FILENO)`
+3. `close(fd)`
+
+Minishell must detect:
+- missing filename → syntax error
+- unreadable file → print error, set exit code to 1
+
+---
+
+## 6.2 Output Redirection `>`
+
+Syntax:
+
+`command > file`
+
+Writes command output to the file, overwriting it.
+
+Example:
+
+```
+$ echo hello > out.txt
+```
+
+Implementation:
+1. `open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644)`
+2. `dup2(fd, STDOUT_FILENO)`
+3. `close(fd)`
+
+---
+
+## 6.3 Append Redirection `>>`
+
+Syntax:
+
+`command >> file`
+
+Appends output at the end of the file.
+
+Example:
+
+```
+$ echo world >> out.txt
+```
+
+Implementation:
+1. `open(file, O_WRONLY | O_CREAT | O_APPEND, 0644)`
+2. `dup2(fd, STDOUT_FILENO)`
+3. `close(fd)`
+
+---
+
+## 6.4 Heredoc `<<`
+
+Syntax:
+
+`command << LIMITER`
+
+The shell reads input **until** the limiter word appears.
+
+Example:
+
+```
+$ cat << EOF
+hello
+there
+EOF
+```
+
+Behavior:
+- Minishell reads lines using `readline()`
+- Stops when the line == LIMITER
+- The collected text is written into a temporary pipe
+- The command’s STDIN is replaced with that pipe
+
+Important:
+- NO variable expansion inside heredoc if limiter is quoted
+- Expansion **is allowed** if limiter is unquoted
+
+Examples:
+
+```
+$ cat << EOF
+$USER
+EOF
+```
+
+→ expands `$USER`
+
+But:
+
+```
+$ cat << "EOF"
+$USER
+EOF
+```
+
+→ printed literally as `$USER`
+
+---
+
+## 6.5 Multiple Redirections
+
+Example:
+
+```
+$ cat < in.txt > out.txt
+```
+
+Rules (Bash-compatible):
+- The **last** redirection of each type wins
+- Order matters for execution, but not for parsing structure
+
+---
+
+# 7. Execution (Builtins and External Commands)
+
+After parsing, redirections, and expansion, minishell must execute the command.
+
+There are two types of commands:
+
+1. **Builtins** (handled inside the shell)
+2. **External programs** (run via `execve()`)
+
+---
+
+## 7.1 Builtins
+
+Mandatory builtins for minishell:
+
+- `echo`  
+- `cd`  
+- `pwd`  
+- `export`  
+- `unset`  
+- `env`  
+- `exit`
+
+Builtins run **without creating a new process**, *except when inside a pipeline*.
+
+Example:
+
+```
+$ cd ..
+```
+
+`cd` must change the working directory of the **minishell process**, so it cannot be executed using `execve()`.
+
+---
+
+## 7.2 External Commands
+
+Everything that is not a builtin is executed using:
+
+```
+fork()
+execve()
+waitpid()
+```
+
+Execution steps:
+
+1. Fork a child process
+2. Apply redirections (dup2)
+3. Build `argv`
+4. Search command in PATH using:
+   - The command itself if it contains `/`
+   - Paths from `$PATH` environment variable
+5. `execve(path, argv, envp)`
+6. Parent waits using `waitpid()`
+
+---
+
+## 7.3 PATH Resolution
+
+Minishell must try:
+
+For command `ls`:
+
+- `/bin/ls`
+- `/usr/bin/ls`
+- etc.
+
+If the command contains `/`, e.g. `./program`, PATH is ignored.
+
+Errors:
+
+- command not found → exit status `127`
+- permission denied → exit status `126`
+
+Example:
+
+```
+$ asdf
+minishell: asdf: command not found
+```
+
+---
+
+## 7.4 Execution in Pipelines
+
+In a pipeline:
+
+`A | B | C`
+
+Each command runs in **its own process**, including builtins.
+
+Each child receives:
+- pipe input
+- pipe output
+- any redirections
+
+Parent only:
+- closes unused pipe ends
+- waits for all children
+
+---
+
+## 7.5 Builtins in Pipelines
+
+Example:
+
+```
+$ echo hi | wc -c
+```
+
+`echo` is a builtin → but must run in a forked child because it is part of a pipeline.
+
+Rule:
+- **If builtin is alone → run in parent (no fork)**  
+- **If builtin is in a pipeline → run in child (fork)**
+
+---
+
+## 7.6 Exit Status
+
+After execution, minishell must set `$?` equal to:
+- waitpid() result for external commands  
+- builtin return value  
+- correct signal code if killed by signal (`130`, `131`, …)
+
+Examples:
+
+Ctrl+C during a command → exit code 130  
+Ctrl+\ (SIGQUIT) → exit code 131
+
+Examples:
+
+```
+$ sleep 10
+^C
+$ echo $?
+130
+```
+
+---
+
+## 7.7 Execution Error Cases
+
+- File not found
+- Permission denied
+- Directory instead of executable
+- Missing PATH
+- Execve failure
+
+Minishell prints errors **like bash**.
+
+Examples:
+
+```
+$ ./folder
+minishell: ./folder: Is a directory
+```
+
+```
+$ ./no-permission
+minishell: ./no-permission: Permission denied
+```
+
 ## TODO
-- 6 — Redirections  
-- 7 — Execution  
 - 8 — Pipelines  
 - 9 — Exit status loop  
 
