@@ -1,6 +1,8 @@
-# Minishell Allowed Functions
+# Minishell Function Map 
 
-## 1. INPUT HANDLING & HISTORY (Chapter 1)
+============================================================
+1. READLINE LIBRARY (Input, Prompt, History)
+============================================================
 
 ────────────────────────
 ### readline
@@ -9,6 +11,9 @@ Prototype:
 char *readline(const char *prompt);
 ```
 
+**Purpose**
+Reads a full line from the terminal with editing support, arrow keys and Ctrl shortcuts
+
 What it does:
 - Prints the prompt (e.g. "minishell$ ")
 - Lets the user type a full editable line
@@ -16,7 +21,7 @@ What it does:
 - Returns a malloc’d string containing the typed line
 - Returns NULL if Ctrl+D is pressed → shell should exit
 
-Why minishell needs it:
+**Use in minishell:**
 - This replaces manual reading using read()
 - Handles interactive behavior for you
 - Makes minishell feel like bash
@@ -57,6 +62,34 @@ if (line && *line)
 Used in:
 - After reading a valid user command
 
+────────────────────────
+### rl_clear_history
+Prototype:
+```
+void rl_clear_history(void);
+```
+
+**Purpose:**
+- Clear the entire command history 
+
+**Use in minishell:**
+- Clean up history before exit
+- Reset history if needed
+
+────────────────────────
+### rl_on_new_line
+Prototype:
+```
+int rl_on_new_line(void);
+```
+
+**Purpose:**
+- Tells readline the cursor moves to a new line
+- Required before redisplay()
+
+**Used in minishell:**
+- After printing output from signal handler
+- Helps readline redraw the prompt correctly after Ctrl+C
 
 ────────────────────────
 ### rl_replace_line
@@ -65,7 +98,7 @@ Prototype:
 void rl_replace_line(const char *text, int clear_undo);
 ```
 
-Purpose:
+**Purpose:**
 - Replace the curret line buffer with new text
 - Useful for Ctrl+C behavior
 
@@ -80,23 +113,6 @@ Used in:
 - Clear the input line whe Ctrl+C is pressed
 - Can be used to reset the input buffer
 
-
-────────────────────────
-### rl_on_new_line
-Prototype:
-```
-int rl_on_new_line(void);
-```
-
-Purpose:
-- Tells readline the cursor moves to a new line
-- Required before redisplay()
-
-Used in:
-- After printing output from signal handler
-- Helps readline redraw the prompt correctly after Ctrl+C
-
-
 ────────────────────────
 ### rl_redisplay
 Prototype:
@@ -104,11 +120,11 @@ Prototype:
 void rl_redisplay(void);
 ```
 
-Purpose:
+**Purpose:**
 - Redraws the prompt + current buffer
 - Needed after clearing/replacing input
 
-Used in:
+**Used in minishell:**
 - After signal handler modifies the display
 - Refresh prompt after Ctrl+
 - Often used together with rl_on_new_line
@@ -125,75 +141,53 @@ void handle_sigint(int sig)
 }
 ```
 
+============================================================
+3. UNIX I/O (Redirections, File Handling)
+============================================================
 
-────────────────────────
-### rl_clear_history
-Prototype:
-```
-void rl_clear_history(void);
-```
-
-Purpose:
-- Frees history list internally
-
-Used in:
-- Clean up history before exit
-- Reset history if needed
-
-
-## 2. BASIC I/O & MEMORY  (Used Everywhere)
-
-────────────────────────
 ### write
-Prototype:
-```
-ssize_t write(int fd, const void *buf, size_t count);
-```
 
-Purpose:
-- write bytes to a file descriptor
-- Async-signal-safe → safe inside handlers
+**Purpose:**
+write bytes to file descriptor.
+
+Prototype:
++code
+ssize_t write(int fd, const void *buf, size_t count);
++code
 
 **Used in minishell:**
-- Output in signal handlers (prinft is not signal-safe) 
-- Write pipes
-- Write to redirect files 
+- Output in signal handlers (printf is not signal-safe)
+- Write to pipes
+- Write to redirected files 
 
-**Example (Ctrl+C handler):**
-```
-write(1, "\nminishell$ ", 12);
-```
-
-────────────────────────
-
-## 3. FILESYSTEM ACCESS (Redirections - Chapter 6)
+**Example:**
++code
+write(STDOUT_FILENO, "hello\n", 6);
+write(1, "minishell: error\n", 17);
++code
 
 ────────────────────────
 ### open
-Prototype:
-```
+
+**Purpose:** 
+Open a file and return a file descriptor.
+
+Prototype
++code
 int open(const char *pathname, int flags, mode_t mode);
-```
++code
 
-**Purpose:**
-- Open a file and return a file descriptor
-
-**Use in minishell:**:
-- Open files for redirection (`<`, `>`, `>>`)
+**Use in minishell:**
+- Open files for redirections (<, >, >>)
 - Create new files for output redirection
 
-Important flags:
-- O_RDONLY: input redirection (`file <`)
-- O_WRONLY | O_CREAT | O_TRUNC → output redirection (`> file`)
-- O_WRONLY | O_CREAT | O_APPEND → append redirection (`>> file`)
-
-Common errors minishell must handle:
-- Permission denied
-- No such file
-- Directory instead of file
+**Flags:**
+- O_RDONLY: input redirection (<)
+- O_WRONLY | O_CREAT | O_TRUNC: output redirection (>)
+- O_WRONLY | O_CREAT | O_APPEND: append redirection (>>)
 
 **Example:**
-```
++code
 // Input redirection: < file
 int fd = open("input.txt", O_RDONLY);
 
@@ -202,92 +196,84 @@ int fd = open("output.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
 // Append redirection: >> file
 int fd = open("output.txt", O_WRONLY | O_CREAT | O_APPEND, 0644);
-```
++code
+
 
 ────────────────────────
-### read
-Prototype:
-```
-ssize_t read(int fd, void *buf, size_t count);
-```
+### read 
 
 **Purpose:**
-- Read bytes from a file descriptor
+Read bytes from a file descriptor.
+
++code
+ssize_t read(int fd, void *buf, size_t count);
++code
 
 **Use in minishell:**
-- Read from files (for < redirection)
-- Read from pipes 
-- Not used for normal command input (readline handles that)
+- Rarely in minishell unless implementing your own heredoc pipe copy
+
+
+────────────────────────
+
+### close
+
+**Purpose:** Close a file descriptor.
+
+Prototype: 
++code
+int close(int fd);
++code
+
+**Use in minishell:**
+- Close files after redirection
+- Close pipe ends
+- Clean up file descriptors
+
+**Example:**
++code
+int fd = open("file.txt", O_RDONLY);
+dup2(fd, STDIN_FILENO);
+close(fd);  // Always close after dup2
++code
 
 
 ────────────────────────
 ### access
-Prototype:
-```
-int access(const char *pathname, int mode);
-```
 
-**Purpose:**
-- Check file permissions and existence
+**Purpose:** Check file permissions and existence.
+
+Prototype
++code
+int access(const char *pathname, int mode);
++code
 
 **Use in minishell:**
-- Check if a file exists before execution
+- Check if a file exists before execution (perfect for PATH resolution)
 - Verify execute permissions (X_OK)
 - Check read/write permissions for redirections
 
 **Example:**
-```
-if (access("/bin/ls", x_OK) == 0)
-	// File exists and is exacutable
-if (acess(file, F_OK) == 0)
-	// File exists
-if (acess(file, R_OK) == 0)
-	// File is readable
-```
-
-**Modes:**
-- F_OK → file exists
-- X_OK → executable permission
-
-**Used in:**
-- PATH resolution before execve
-
-
-────────────────────────
-### close
-Prototype:
-```
-int close(int fd);
-```
-
-Purpose:
-- Close file descriptors
-- Very important in pipes to avoid FD leaks
-
-Used in:
-- After dup2()
-- After creating pipes
-- Redirection cleanup
-
++code
+if (access("/bin/ls", X_OK) == 0)
+    // File exists and is executable
+if (access(file, F_OK) == 0)
+    // File exists
+if (access(file, R_OK) == 0)
+    // File is readable
++code
 
 ────────────────────────
 ### unlink
-Prototype:
-```
+
+**Purpose:** Delete a file.
+
+Prototype
++code
 int unlink(const char *pathname);
-```
++code
 
-Purpose:
-- Deletes a file
-
-Used in:
-- Heredoc temporary file cleanup
-
+**Use in minishell:**
+- Remove temporary files created for heredoc
+- Clean up temporary storage
 
 ────────────────────────
-### stat / lstat / fstat
-Prototypes:
-```
-int stat(const char *path, struct stat *buf);
-int lstat(const char *path, struct stat *buf);
-int fstat(int fd, struct stat *buf)*
