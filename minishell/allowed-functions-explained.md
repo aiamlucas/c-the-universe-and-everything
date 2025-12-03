@@ -1,5 +1,64 @@
 # Minishell Function Map 
 
+
+# Index
+
+## 1. Readline Library (Input, Prompt, History)
+- [readline()](#readline)
+- [add_history()](#add_history)
+- [rl_clear_history()](#rl_clear_history)
+- [rl_on_new_line()](#rl_on_new_line)
+- [rl_replace_line()](#rl_replace_line)
+- [rl_redisplay()](#rl_redisplay)
+## 2. UNIX I/O (Redirections, File Handling)
+- [write()](#write)
+- [open()](#open)
+- [read()](#read)
+- [close()](#close)
+- [access()](#access)
+- [unlink()](#unlink)
+## 3. Directory Handling
+- [opendir()](#opendir)
+- [readdir()](#readdir)
+- [closedir()](#closedir)
+## 4. File Metadata
+- [stat()](#stat)
+- [lstat()](#lstat)
+- [fstat()](#fstat)
+## 5. Process Control
+- [fork()](#fork)
+- [execve()](#execve)
+- [wait()](#wait--waitpid)
+- [waitpid()](#wait--waitpid)
+- [wait3()](#wait3--wait4)
+- [wait4()](#wait3--wait4)
+- [kill()](#kill)
+- [exit()](#exit)
+## 6. Signal Handling
+- [signal()](#signal)
+- [sigaction()](#sigaction)
+- [sigemptyset()](#sigemptyset)
+- [sigaddset()](#sigaddset)
+## 7. Terminal / TTY Functions
+- [isatty()](#isatty)
+- [ttyname()](#ttyname)
+- [ttyslot()](#ttyslot)
+- [ioctl()](#ioctl)
+- [tcgetattr()](#tcsetattr--tcgetattr)
+- [tcsetattr()](#tcsetattr--tcgetattr)
+- [tgetent()](#tgetent--other-termcap-functions)
+- [tgetflag()](#tgetent--other-termcap-functions)
+- [tgetnum()](#tgetent--other-termcap-functions)
+- [tgetstr()](#tgetent--other-termcap-functions)
+- [tgoto()](#tgetent--other-termcap-functions)
+- [tputs()](#tgetent--other-termcap-functions)
+## 8. Environment & Directory Utilities
+- [getenv()](#getenv)
+- [getcwd()](#getcwd)
+- [chdir()](#chdir)
+
+---
+
 ## 1. READLINE LIBRARY (Input, Prompt, History)
 
 ────────────────────────
@@ -322,7 +381,7 @@ Check if a file exists or if the user has permission to access it.
 **Use in minishell:**  
 - PATH resolution: checking executability of each candidate file
 - Detect “permission denied” before execve
-- Checking read/write permissions on redirection files
+- Checking read/write permissions for redirections 
 
 **Where it is used:**  
 - PATH resolution engine  
@@ -762,7 +821,7 @@ if (error)
 
 ────────────────────────
 
-# 6. SIGNAL HANDLING  (signal, sigaction, sigemptyset, sigaddset)
+# 5. SIGNAL HANDLING  (signal, sigaction, sigemptyset, sigaddset)
 
 Signal handling is CRUCIAL in minishell because bash-like behavior must be respected.
 
@@ -882,7 +941,7 @@ sigaddset(&sa.sa_mask, SIGINT);
 
 ────────────────────────
 
-# 7. TERMINAL & TTY (isatty, ttyname, ttyslot, ioctl,
+# 6. TERMINAL & TTY (isatty, ttyname, ttyslot, ioctl,
                      tcsetattr, tcgetattr,
                      tgetent, tgetflag, tgetnum, tgetstr, tgoto, tputs)
 
@@ -1047,7 +1106,7 @@ char *clr = tgetstr("*
 
 ────────────────────────
 
-# 8. ENVIRONMENT & DIRECTORY FUNCTIONS
+# 7. ENVIRONMENT & DIRECTORY FUNCTIONS
 
 These functions manage the environment, working directory, or retrieve environment variables.
 
@@ -1135,7 +1194,7 @@ if (chdir("/tmp") == -1)
 
 ────────────────────────
 
-# 10. PROCESS MANAGEMENT FUNCTIONS
+# 8. PROCESS MANAGEMENT FUNCTIONS
 
 Core process control functions used to execute external commands and pipelines.
 
