@@ -1,5 +1,56 @@
 # Explaining Bash
 
+# Table of Contents
+
+- [1 - Input handling (readline)](#1---input-handling-readline)
+  - [Basic Input Behaviors](#basic-input-behaviors)
+  - [History](#history)
+  - [Signal Handling Implementation](#signal-handling-implementation)
+  - [Signal Setup](#signal-setup)
+  - [Signal Handler Workflow](#signal-handler-workflow)
+  - [Exit Status from Signals](#exit-status-from-signals)
+
+- [2 - Lexing / Tokenizing](#2---lexing--tokenizing)
+  - [2.1 Rules for splitting the input into tokens](#21-rules-for-splitting-the-input-into-tokens)
+    - [Rule 1](#rule-1-whitespace-separates-tokens)
+    - [Rule 2](#rule-2-pipes--redirections-are-always-separate-tokens)
+    - [Rule 3](#rule-3-single-quotes-preserve-everything)
+    - [Rule 4](#rule-4-double-quotes-preserve-everything-except-)
+    - [Rule 5](#rule-5--starts-variable-expansion)
+    - [Rule 6](#rule-6--and--are-single-tokens)
+    - [Rule 7](#rule-7-words-stop-at-unquoted-special-characters)
+
+- [3 - Parsing](#3---parsing)
+
+- [4 - Expansion](#4---expansion)
+
+- [5 - Quote Removal](#5---quote-removal)
+
+- [6 - Redirections](#6---redirections)
+  - [6.1 Input Redirection `<`](#61-input-redirection-)
+  - [6.2 Output Redirection `>`](#62-output-redirection-)
+  - [6.3 Append Redirection `>>`](#63-append-redirection-)
+  - [6.4 Heredoc `<<`](#64-heredoc-)
+    - [Heredoc and History](#heredoc-and-history)
+    - [Heredoc Expansion Rules](#heredoc-expansion-rules)
+    - [Heredoc with Pipes](#heredoc-with-pipes)
+  - [6.5 Multiple Redirections](#65-multiple-redirections)
+
+- [7 - Execution (builtins / external)](#7---execution-builtins--external)
+  - [7.1 Builtins](#71-builtins)
+  - [7.2 External Commands](#72-external-commands)
+  - [7.3 PATH Resolution](#73-path-resolution)
+  - [7.4 Execution in Pipelines](#74-execution-in-pipelines)
+  - [7.5 Builtins in Pipelines](#75-builtins-in-pipelines)
+  - [7.6 Exit Status](#76-exit-status)
+  - [7.7 Execution Error Cases](#77-execution-error-cases)
+
+- [8 - Pipelines](#8---pipelines)
+
+- [9 - Exit status loop](#9---exit-status-loop)
+
+- [10 - Main Loop (Program Flow)](#10---main-loop-program-flow)
+
 ## 1 - Input handling (readline)
 
 Minishell uses the `readline()` function to read user input from the terminal.  
