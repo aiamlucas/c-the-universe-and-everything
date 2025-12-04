@@ -1,58 +1,55 @@
-# Bash Behavior & Shell Stages
+# Explaining Bash
 
-## 1. Explaining Bash
+## 1 - Input handling (readline)
 
-### 1.1 Input Handling (readline)
+Minishell uses the `readline()` function to read user input from the terminal.  
+This function provides a command-line interface with history support and handles basic terminal input.
 
-- **Empty line → prints a new prompt**
+---
 
+### Basic Input Behaviors
+
+**Empty line** → prints a new prompt  
 ```
 $
 $
 ```
 
-- **Whitespaces only → bash ignores them and prints a new prompt**
-
+**Whitespaces only** → bash ignores the whitespaces and prints a new prompt  
 ```
 $
 $
 ```
 
-- **Ctrl+C (in empty prompt → new line + new prompt)**
-
+**Ctrl+C (in empty prompt)** → new line + new prompt  
 ```
 $ ^C
 $
 ```
 
-- **Ctrl+C (with typed text → clear line + new prompt)**
-
+**Ctrl+C (with typed text)** → clear line + new prompt  
 ```
 $ sometext^C
 $
 ```
 
-- **Ctrl+D (in empty prompt → exit shell)**
-
+**Ctrl+D (in empty prompt)** → exit shell  
 ```
 $
 exit
 ```
 
-- **Ctrl+D (with typed text → does nothing)**
-
+**Ctrl+D (with typed text)** → does nothing  
 ```
 $ sometext
 ```
 
-- **Ctrl+\ (in empty prompt → does nothing)**
-
+**Ctrl+\ (in empty prompt)** → does nothing  
 ```
 $
 ```
 
-- **Ctrl+\ (during a running command → sends SIGQUIT)**
-
+**Ctrl+\ (during a running command)** → quit signal  
 ```
 $ cat
 hello
@@ -63,101 +60,221 @@ $
 
 ---
 
-## 2. Lexing / Tokenizing
+### History
 
-Tokenizing breaks the user’s input into *tokens*:  
-words, operators, quotes, and `$`.
+For having history, minishell must store every valid command line into the history list using `add_history()`.
 
-### 2.1 Rules for Splitting Tokens
+Correct history behavior:
 
-#### Rule 1: Whitespace separates tokens
+- Only *complete* input lines entered at the prompt are saved.
+- Empty lines or whitespace-only lines are NOT saved.
+- Lines typed inside a heredoc are NOT saved
+
+---
+
+### Signal Handling Implementation
+
+Minishell must handle signals correctly to achieve the behaviors described above.
+
+**Subject constraint: Only ONE global variable allowed.**
+
+```
+external volatile sig_atomic_t g_signal = 0;
+```
+
+This variable must:
+
+- Store ONLY the signal number received  
+- NOT be a struct or contain multiple fields  
+- NOT provide access to other data structures  
+
+---
+
+### Signal Setup
+
+Minishell needs different signal behaviors in different contexts:
+
+**In parent (interactive mode - waiting for input):**
+
+- SIGINT (Ctrl+C) → custom handler that prints new line + new prompt  
+- SIGQUIT (Ctrl+\) → ignored (SIG_IGN)
+
+**In child (during command execution):**
+
+- SIGINT (Ctrl+C) → default behavior (terminates child)  
+- SIGQUIT (Ctrl+\) → default behavior (terminates child with core dump)
+
+---
+
+### Signal Handler Workflow
+
+1. Signal arrives → handler sets g_signal = signal_number  
+2. Main loop detects g_signal != 0  
+3. Take appropriate action:  
+   - SIGINT → print newline, new prompt, update `$?` to 130  
+   - SIGQUIT (in child) → update `$?` to 131  
+4. Reset g_signal = 0  
+
+---
+
+### Exit Status from Signals
+
+When a child process is killed by a signal, the exit code follows this formula:
+
+```
+exit_code = 128 + signal_number
+```
+
+It must add 128 because Unix shells reserve:
+
+- 0–125 → normal exits  
+- 126 → permission denied  
+- 127 → command not found  
+
+**Common cases:**
+
+- SIGINT (2) → 128 + 2 = 130  
+- SIGQUIT (3) → 128 + 3 = 131  
+
+**Implementation:**
+
+After `waitpid()`, check:
+
+- `WIFSIGNALED(status)`  
+- If true → `128 + WTERMSIG(status)`  
+
+---
+
+# 2 - Lexing / Tokenizing
+
+Tokenizing is the process of breaking the user input into meaningful pieces called *tokens*.
+
+Tokens represent words, operators (`|`, `<`, `>`, `<<`, `>>`, `&&`, `||`), quotes (`'`, `"`) and special symbols (`$`, `\`, `;`, `&`, `(`, `)`, `*`, `?`, `[`, `]`, `~`).
+
+**Mandatory for minishell:**  
+operators (`|`, `<`, `>`, `<<`, `>>`), quotes (`'`, `"`) and `$` (expansion)
+
+---
+
+## 2.1 Rules for splitting the input into tokens
+
+### Rule 1: Whitespace separates tokens
 
 ```
 $ echo hello world
 ```
 
 Tokens:
-- echo  
-- hello  
-- world
 
-#### Rule 2: Pipes & redirections are ALWAYS separate tokens
+echo  
+hello  
+world  
+
+---
+
+### Rule 2: Pipes & redirections are always separate tokens
 
 ```
 $ echo hi>out.txt
 ```
 
 Tokens:
-- echo  
-- hi  
-- \>  
-- out.txt
 
-#### Rule 3: Single quotes ('...') preserve everything
+echo  
+hi  
+>  
+out.txt  
+
+---
+
+### Rule 3: Single quotes preserve EVERYTHING (`'...'`)
+
+Nothing is interpreted inside single quotes.
 
 ```
 $ echo 'hello | world $USER'
 ```
 
 Token:
-- 'hello | world $USER'
 
-#### Rule 4: Double quotes preserve everything except `$`
+'hello | world $USER'
+
+---
+
+### Rule 4: Double quotes preserve everything EXCEPT `$`
 
 ```
 $ echo "Hello $USER"
 ```
 
 Tokens:
-- echo  
-- "Hello $USER"
 
-#### Rule 5: `$` starts expansion  
-(handled later)
+echo  
+"Hello $USER"
 
-#### Rule 6: `<<` and `>>` are single tokens
+---
+
+### Rule 5: `$` starts variable expansion
+
+(Expansion happens later.)
+
+---
+
+### Rule 6: `<<` and `>>` are single tokens
+
+Must not be split into `<` `<` or `>` `>`.
 
 ```
-$<< EOF
+$ << EOF
 ```
 
 Tokens:
-- <<  
-- EOF
 
-#### Rule 7: Words stop at unquoted operators
+<<  
+EOF  
+
+---
+
+### Rule 7: Words stop at unquoted special characters
 
 ```
 $ cat<file
 ```
 
 Tokens:
-- cat  
-- <  
-- file
+
+cat  
+<  
+file  
 
 ---
 
-## 3. Parsing
+# 3 - Parsing
 
-Parsing organizes tokens into a structure containing:
-- commands  
-- arguments  
-- redirections  
-- pipelines  
+Parsing takes the tokens and builds a structure representing the commands.
 
-### Example
+The parser must identify:
 
-Input:
+- Command name  
+- Arguments  
+- Redirections  
+- Pipes  
+- Which redirection belongs to which command  
 
+Example:
 ```
-$ ls -l | grep txt > out.txt
+ls -l | grep txt > out.txt
 ```
 
-Tokens:  
-ls, -l, |, grep, txt, >, out.txt
+Tokens:
 
-Parsed representation:
+ls  
+-l  
+|  
+grep  
+txt  
+>  
+out.txt  
 
 ```
 PIPELINE
@@ -165,247 +282,151 @@ Command 1:
   name: ls
   args: ["ls", "-l"]
   redirections: none
+```
 
+```
 Command 2:
   name: grep
-  args: ["grep", "txt"]
+  args: ["grep", "out.txt"]
   redirections:
-      stdout → out.txt (overwrite)
+    stdout → out.txt (overwrite)
 ```
 
-Parser algorithm:
-1. First word starts a command.  
-2. Following words are arguments.  
-3. Redirection → attach filename.  
-4. Pipe → end command, start next.  
-5. Continue until tokens end.
+Parser steps:
+
+1. Take tokens in order  
+2. Create command on word  
+3. Add following words as args  
+4. On redirection:
+   - next token must be filename  
+   - attach to command  
+5. On pipe:
+   - finish current command  
+   - start next one  
+6. Continue until done  
 
 ---
 
-## 4. Expansion
+# 4 - Expansion
 
-Expansion happens **after parsing**, before quote removal.
+Expansion happens after parsing and before quote removal.
 
-### Types of Expansion
-- `$VAR` environment variable  
-- `$?` last exit code  
-- expansion inside `" "`  
-- **no expansion inside `' '`**  
-- undefined variable → empty string  
+Expands:
 
----
+- `$VAR`  
+- `$?`  
+- variables inside double quotes  
+- NOT inside single quotes  
 
-### Rules
+Rules:
 
-#### 1. `$VAR` → variable value
+1. `$VAR` → environment variable value  
+2. `$?` → previous exit code  
+3. Double quotes allow expansion  
+4. Single quotes disable it  
+5. Undefined variable → empty string  
+6. Expansion may create multiple args  
+7. No advanced Bash expansions required  
 
-```
-$ echo $HOME
-ssin
-```
-
-#### 2. `$?` → exit status
-
-```
-$ echo $?
-2
-```
-
-#### 3. Expansion inside double quotes
-
-```
-$ export USER=ssin
-$ echo "User: $USER"
-User: ssin
-```
-
-#### 4. No expansion in single quotes
-
-```
-$ echo '$USER'
-$USER
-```
-
-#### 5. Undefined variable → empty string
-
-```
-$ echo "$DOES_NOT_EXIST"
-```
-
-(empty output)
-
-#### 6. Expansion can change argument count (word splitting)
+Example:
 
 ```
 $ PATH="/bin /usr/bin"
 $ echo $PATH
 /bin /usr/bin
-```
-
-Two arguments.
-
-Quoted:
-
-```
-$ echo "$PATH"
-/bin /usr/bin
-```
-
-printf demonstration:
-
-```
 $ printf "[%s]\n" $PATH
 [/bin]
 [/usr/bin]
-
 $ printf "[%s]\n" "$PATH"
 [/bin /usr/bin]
 ```
 
-#### 7. Minishell does NOT implement:
-- `{}` brace expansion  
-- `$(( ))` arithmetic  
-- `$(...)` command substitution  
-- `~` tilde expansion  
-
-Only `$VAR` and `$?`.
-
 ---
 
-## 5. Quote Removal
+# 5 - Quote Removal
 
 After expansion:
-- quotes are stripped  
-- expanded values remain  
-- `' '` prevents expansion but still gets removed  
 
-### Examples
+- remove `'`  
+- remove `"`  
 
-#### Single quotes → no expansion, quotes removed
-
-Input:
+Examples:
 
 ```
 $ echo '$USER'
+→ $USER
 ```
 
-After quote removal:  
-`$USER`
-
-#### Double quotes → allow expansion, then removed
-
-USER=alice
-
 ```
+$ USER=alice
 $ echo "User: $USER"
+→ User: alice
 ```
-
-Final:  
-`User: alice`
-
-#### Mixed quoting example
 
 ```
 $ echo "'hello' "$USER
+→ 'hello'
+→ alice
 ```
-
-Final arguments:
-- `'hello'`  
-- `alice`
 
 ---
 
-# 6. Redirections
-
-Redirections allow a command to read from or write to files instead of the terminal.
+# 6 - Redirections
 
 Minishell must support:
 
-- Input redirection: `<`
-- Output redirection (overwrite): `>`
-- Output redirection (append): `>>`
-- Heredoc: `<<`
+- `<` input  
+- `>` output overwrite  
+- `>>` append  
+- `<<` heredoc  
 
-Redirections always belong **to the command immediately before them** (unless it's the first token).
+Redirections belong to **the command immediately before them**  
+(unless appearing before any command → then they belong to the first command).
+
+Examples:
+
+`echo hi > out.txt` → `>` belongs to echo  
+
+`cat < in.txt | grep hi > result.txt`  
+- `<` belongs to cat  
+- `>` belongs to grep  
+
+`> log.txt echo hi`  
+- first token → belongs to echo  
 
 ---
 
 ## 6.1 Input Redirection `<`
 
-Syntax:
-
-`command < file`
-
-This replaces the command’s STDIN (fd 0) with the contents of the file.
-
-Example:
-
 ```
-$ cat < input.txt
+open(file, O_RDONLY)
+dup2(fd, STDIN_FILENO)
+close(fd)
 ```
-
-Implementation steps:
-1. `open(file, O_RDONLY)`
-2. `dup2(fd, STDIN_FILENO)`
-3. `close(fd)`
-
-Minishell must detect:
-- missing filename → syntax error
-- unreadable file → print error, set exit code to 1
 
 ---
 
 ## 6.2 Output Redirection `>`
 
-Syntax:
-
-`command > file`
-
-Writes command output to the file, overwriting it.
-
-Example:
-
 ```
-$ echo hello > out.txt
+open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644)
+dup2(fd, STDOUT_FILENO)
+close(fd)
 ```
-
-Implementation:
-1. `open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644)`
-2. `dup2(fd, STDOUT_FILENO)`
-3. `close(fd)`
 
 ---
 
 ## 6.3 Append Redirection `>>`
 
-Syntax:
-
-`command >> file`
-
-Appends output at the end of the file.
-
-Example:
-
 ```
-$ echo world >> out.txt
+open(file, O_WRONLY | O_CREAT | O_APPEND, 0644)
+dup2(fd, STDOUT_FILENO)
+close(fd)
 ```
-
-Implementation:
-1. `open(file, O_WRONLY | O_CREAT | O_APPEND, 0644)`
-2. `dup2(fd, STDOUT_FILENO)`
-3. `close(fd)`
 
 ---
 
 ## 6.4 Heredoc `<<`
-
-Syntax:
-
-`command << LIMITER`
-
-The shell reads input **until** the limiter word appears.
-
-Example:
 
 ```
 $ cat << EOF
@@ -415,186 +436,235 @@ EOF
 ```
 
 Behavior:
-- Minishell reads lines using `readline()`
-- Stops when the line == LIMITER
-- The collected text is written into a temporary pipe
-- The command’s STDIN is replaced with that pipe
 
-Important:
-- NO variable expansion inside heredoc if limiter is quoted
-- Expansion **is allowed** if limiter is unquoted
+- readline until limiter  
+- store lines  
+- redirect STDIN to stored content  
+
+### Heredoc and History
+
+Heredoc lines **do not** enter history.
+
+---
+
+### Heredoc Expansion Rules
+
+**Unquoted delimiter → expands variables**
+
+**Quoted delimiter → no expansion**
 
 Examples:
 
 ```
+$ USER=alice
 $ cat << EOF
-$USER
+Hello $USER
+Status: $?
 EOF
 ```
 
-→ expands `$USER`
+Output:
 
-But:
+Hello alice  
+Status: 0  
 
 ```
 $ cat << "EOF"
-$USER
+Hello $USER
+Status: $?
 EOF
 ```
 
-→ printed literally as `$USER`
+Output:
+
+Hello $USER  
+Status: $?  
+
+**Any quoting disables expansion:**  
+`<< "EOF"`  
+`<< 'EOF'`  
+`<< E"O"F`  
+
+---
+
+### Heredoc with Pipes
+
+```
+$ cat << END | grep hello
+hello world
+goodbye world
+END
+```
+
+Output:  
+
+hello world  
 
 ---
 
 ## 6.5 Multiple Redirections
 
-Example:
-
-```
-$ cat < in.txt > out.txt
-```
-
-Rules (Bash-compatible):
-- The **last** redirection of each type wins
-- Order matters for execution, but not for parsing structure
+Process left to right.  
+Last redirect of each type wins.
 
 ---
 
-# 7. Execution (Builtins and External Commands)
+# 7 - Execution (builtins / external)
 
-After parsing, redirections, and expansion, minishell must execute the command.
+After parsing, redirections, and expansion, minishell executes commands.
 
-There are two types of commands:
+Two types:
 
-1. **Builtins** (handled inside the shell)
-2. **External programs** (run via `execve()`)
+1. Builtins  
+2. External programs  
 
 ---
 
 ## 7.1 Builtins
 
-Mandatory builtins for minishell:
+Mandatory builtins:
 
-- `echo`  
-- `cd`  
-- `pwd`  
-- `export`  
-- `unset`  
-- `env`  
-- `exit`
+- echo  
+- cd  
+- pwd  
+- export  
+- unset  
+- env  
+- exit  
 
-Builtins run **without creating a new process**, *except when inside a pipeline*.
+**Builtins run in parent unless in a pipeline.**
 
 Example:
 
 ```
 $ cd ..
+$ export VAR=hello
+$ exit
 ```
 
-`cd` must change the working directory of the **minishell process**, so it cannot be executed using `execve()`.
-
----
-
-## 7.2 External Commands
-
-Everything that is not a builtin is executed using:
-
-```
-fork()
-execve()
-waitpid()
-```
-
-Execution steps:
-
-1. Fork a child process
-2. Apply redirections (dup2)
-3. Build `argv`
-4. Search command in PATH using:
-   - The command itself if it contains `/`
-   - Paths from `$PATH` environment variable
-5. `execve(path, argv, envp)`
-6. Parent waits using `waitpid()`
-
----
-
-## 7.3 PATH Resolution
-
-Minishell must try:
-
-For command `ls`:
-
-- `/bin/ls`
-- `/usr/bin/ls`
-- etc.
-
-If the command contains `/`, e.g. `./program`, PATH is ignored.
-
-Errors:
-
-- command not found → exit status `127`
-- permission denied → exit status `126`
-
-Example:
-
-```
-$ asdf
-minishell: asdf: command not found
-```
-
----
-
-## 7.4 Execution in Pipelines
-
-In a pipeline:
-
-`A | B | C`
-
-Each command runs in **its own process**, including builtins.
-
-Each child receives:
-- pipe input
-- pipe output
-- any redirections
-
-Parent only:
-- closes unused pipe ends
-- waits for all children
-
----
-
-## 7.5 Builtins in Pipelines
-
-Example:
+Builtin in pipeline runs in child:
 
 ```
 $ echo hi | wc -c
 ```
 
-`echo` is a builtin → but must run in a forked child because it is part of a pipeline.
+---
 
-Rule:
-- **If builtin is alone → run in parent (no fork)**  
-- **If builtin is in a pipeline → run in child (fork)**
+## 7.2 External Commands
+
+Use:
+
+- fork()  
+- execve()  
+- waitpid()  
+
+Steps:
+
+1. fork  
+2. apply redirections  
+3. build argv  
+4. resolve `$PATH`  
+5. execve  
+6. parent waits  
+
+---
+
+## 7.3 PATH Resolution
+
+If command contains `/` → execute directly.
+
+Else search:
+
+- /bin  
+- /usr/bin  
+- etc.  
+
+Errors:
+
+- not found → 127  
+- permission denied / directory → 126  
+
+---
+
+## 7.4 Execution in Pipelines
+
+`A | B | C`:
+
+- each command runs in child  
+- pipes connect their fds  
+- parent closes unused ends  
+- waits for all children  
+
+---
+
+## 7.5 Builtins in Pipelines
+
+Builtin alone → parent  
+Builtin in pipeline → child  
 
 ---
 
 ## 7.6 Exit Status
 
-After execution, minishell must set `$?` equal to:
-- waitpid() result for external commands  
-- builtin return value  
-- correct signal code if killed by signal (`130`, `131`, …)
+`$?` updated with:
 
-Examples:
+- builtin return  
+- child exit code  
+- 130 on SIGINT  
+- 131 on SIGQUIT  
 
-Ctrl+C during a command → exit code 130  
-Ctrl+\ (SIGQUIT) → exit code 131
+---
+
+## 7.7 Execution Error Cases
 
 Examples:
 
 ```
-$ sleep 10
+$ ./folder
+minishell: ./folder: Is a directory
+
+$ ./no-permission
+minishell: ./no-permission: Permission denied
+```
+
+---
+
+# 8 - Pipelines
+
+Syntax: `cmd1 | cmd2 | cmd3`
+
+Rules:
+
+- each command in its own child  
+- stdout piped to next stdin  
+- redirections isolated per command  
+- `$?` = exit status of last command  
+
+---
+
+# 9 - Exit status loop
+
+After each command minishell updates `$?`.
+
+Rules:
+
+- external → waitpid() result  
+- builtin → return value  
+- pipeline → last command’s exit  
+- SIGINT → 130  
+- SIGQUIT → 131  
+
+Examples:
+
+```
+$ ls
+$ echo $?
+0
+
+$ nonexistentcommand
+127
+
+$ sleep 5
 ^C
 $ echo $?
 130
@@ -602,29 +672,21 @@ $ echo $?
 
 ---
 
-## 7.7 Execution Error Cases
+# 10 - Main Loop (Program Flow)
 
-- File not found
-- Permission denied
-- Directory instead of executable
-- Missing PATH
-- Execve failure
+Minishell loop:
 
-Minishell prints errors **like bash**.
+1. Print prompt  
+2. Read input  
+3. Lexing  
+4. Parsing  
+5. Expansion  
+6. Prepare redirections & pipelines  
+7. Execute  
+8. Update `$?`  
+9. Repeat  
 
-Examples:
+Exit when:
 
-```
-$ ./folder
-minishell: ./folder: Is a directory
-```
-
-```
-$ ./no-permission
-minishell: ./no-permission: Permission denied
-```
-
-## TODO
-- 8 — Pipelines  
-- 9 — Exit status loop  
-
+- `exit`  
+- Ctrl+D on empty prompt  
