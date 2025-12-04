@@ -1,6 +1,5 @@
 # Minishell Function Map 
 
-
 # Index
 
 ## 1. Readline Library (Input, Prompt, History)
@@ -52,7 +51,6 @@
 - [tgetstr()](#tgetent--tgetflag--tgetnum--tgetstr--tgoto--tputs)
 - [tgoto()](#tgetent--tgetflag--tgetnum--tgetstr--tgoto--tputs)
 - [tputs()](#tgetent--tgetflag--tgetnum--tgetstr--tgoto--tputs)
-
 ## 8. Environment & Directory Utilities
 - [getenv()](#getenv)
 - [getcwd()](#getcwd)
@@ -413,7 +411,6 @@ Delete (remove) a file.
 **Use in minishell:**  
 - Remove temporary heredoc files (if using real files)  
 - Cleanup after errors  
-- Implementing safe tmp-file lifecycle
 
 **Where it is used:**  
 - Heredoc temporary file deletion  
@@ -692,12 +689,17 @@ int execve(const char *pathname, char *const argv[], char *const envp[]);
 ```
 
 **Purpose:**  
-Replace the current process image with a new program.
+Execute a program, replacing current process
 
 **Use in minishell:**  
 - Run external programs  
 - Called only from the **child process** after fork  
 - never returns unless failed
+
+**Parameters:**
+- pathname: full path to executable
+- argv: NULL-terminated array of arguments
+- envp: NULL-terminated array of environment variables
 
 **Where it is used:**  
 - External command execution  
@@ -712,35 +714,89 @@ exit(126);
 
 ────────────────────────
 
-### wait / waitpid
+### wait()
 
-Prototypes:
-```
+Prototype:
++code
 pid_t wait(int *wstatus);
-pid_t waitpid(pid_t pid, int *wstatus, int options);
-```
++code
 
 **Purpose:**  
-Wait for child processes to finish.
+Wait for **any** child process to finish.
+
+**Behavior:**  
+- Blocks until *one of your children* exits  
+- You **cannot choose which one**  
+- Returns the PID of the child that finished
 
 **Use in minishell:**  
-- Get exit status for `$?`  
-- Wait for pipeline children  
-- Wait for standalone external commands  
-- Detect if child was terminated by a **signal** (SIGINT, SIGQUIT)
+- Rarely used  
+- Not recommended for pipelines (order matters)  
+- Could be used for a single external command, but waitpid() is better
 
 **Where it is used:**  
-- Execution  
-- Pipelines  
-- Exit status handling
+- Optional simple cases  
+- Not ideal for minishell’s precise exit-status management
+
+### Status macros (same for wait() and waitpid())
+
+- **WIFEXITED(status)** → child exited normally  
+- **WEXITSTATUS(status)** → normal exit code (0–255)  
+- **WIFSIGNALED(status)** → child terminated by a signal  
+- **WTERMSIG(status)** → signal number  
+- **WIFSTOPPED(status)** → not needed in minishell (job control)
 
 **Example:**
-```
++code
+int status;
+pid_t child = wait(&status);
++code
+
+────────────────────────
+
+### waitpid()
+
+Prototype:
++code
+pid_t waitpid(pid_t pid, int *wstatus, int options);
++code
+
+**Purpose:**  
+Wait for **a specific child**, or any child if pid == -1.
+
+**Behavior:**  
+- Lets minishell choose the exact child to wait for  
+- Supports options (e.g., WNOHANG)  
+- Works perfectly with pipelines  
+- Required for proper `$?` handling  
+
+**Use in minishell:**  
+- ✔ Mandatory for pipelines  
+- ✔ Mandatory for correct exit status  
+- ✔ Needed to detect signals (SIGINT, SIGQUIT)
+
+**Where it is used:**  
+- Execution engine  
+- Pipeline waiting loop  
+- Exit status update logic
+
+
+### Status macros (same for wait() and waitpid())
+
+- **WIFEXITED(status)** → child exited normally  
+- **WEXITSTATUS(status)** → normal exit code (0–255)  
+- **WIFSIGNALED(status)** → child terminated by a signal  
+- **WTERMSIG(status)** → signal number  
+- **WIFSTOPPED(status)** → not needed in minishell (job control)
+
+**Example:**
++code
 int status;
 waitpid(pid, &status, 0);
-if (WIFEXITED(status))
-    printf("exit code = %d\n", WEXITSTATUS(status));
-```
+
+if (WIFSIGNALED(status))
+    last_exit = 128 + WTERMSIG(status);
++code
 
 ────────────────────────
 
