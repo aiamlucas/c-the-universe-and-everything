@@ -29,6 +29,14 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 - [Makefiles](makefile/makefiles.md)
 
+### Minishell
+
+- [Shell Basics](minishell/shell-basics.md)
+- [Allowed Functions Explained](minishell/allowed-functions-explained.md)
+- [Explaining Shell](minishell/explaining-shell.md)
+- [Functions Usage Map](minishell/functions-usage-map.md)
+- [Project Documentation](minishell/project-documentation.md)
+
 ### Minitalk
 
 - [Minitalk](minitalk/minitalk.md)
