@@ -717,9 +717,9 @@ exit(126);
 ### wait()
 
 Prototype:
-+code
+```
 pid_t wait(int *wstatus);
-+code
+```
 
 **Purpose:**  
 Wait for **any** child process to finish.
@@ -747,19 +747,19 @@ Wait for **any** child process to finish.
 - **WIFSTOPPED(status)** → not needed in minishell (job control)
 
 **Example:**
-+code
+```
 int status;
 pid_t child = wait(&status);
-+code
+```
 
 ────────────────────────
 
 ### waitpid()
 
 Prototype:
-+code
+```
 pid_t waitpid(pid_t pid, int *wstatus, int options);
-+code
+```
 
 **Purpose:**  
 Wait for **a specific child**, or any child if pid == -1.
@@ -790,13 +790,13 @@ Wait for **a specific child**, or any child if pid == -1.
 - **WIFSTOPPED(status)** → not needed in minishell (job control)
 
 **Example:**
-+code
+```
 int status;
 waitpid(pid, &status, 0);
 
 if (WIFSIGNALED(status))
     last_exit = 128 + WTERMSIG(status);
-+code
+```
 
 ────────────────────────
 
