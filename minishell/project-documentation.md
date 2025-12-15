@@ -303,7 +303,7 @@ argv[2] = NULL
 ```
 
 ### Environment Variables
-`envp` comes from main() - system provides it. Used for:
+`envp` comes from main(), system provides it. Used for:
 - PATH: finding executables
 - HOME: cd builtin
 - Passed to execve()
@@ -324,7 +324,7 @@ Global variable: `volatile sig_atomic_t g_signal`
  **Completed:**
 - Basi Tokenizer (lexer)
 - Token linked list utilities
-- Parser (basic - pipes + redirections)
+- Parser (basic pipes + redirections)
 - Command linked list utilities
 - Redirection linked list utilities
 - Debug print functions
