@@ -331,7 +331,7 @@ Global variable: `volatile sig_atomic_t g_signal`
 
  **TODO:**
 - Quote handling (' and ") - in lexer
-- Variable expansion ($VAR, $?) - new expansion.c (between lexer and parser)
+- Variable expansion (\$VAR, \$?) - new expansion.c (between lexer and parser)
 - Quote removal - in expansion.c (after variable expansion)
 - Execution (fork, pipe, execve) - new executor module
 - Built-in commands (echo, cd, pwd, export, unset, env, exit) - new builtins module
