@@ -114,8 +114,6 @@ Used for:
 
 ## PART 8 — PIPES (| operator)
 
-You will use:
-
 • pipe()  
 • dup2()  
 • close()  
@@ -131,8 +129,6 @@ Used for:
 
 ## PART 9 — EXIT STATUS MANAGEMENT
 
-You will use:
-
 • waitpid()  
 • WIFEXITED(), WEXITSTATUS()  
 • WIFSIGNALED(), WTERMSIG()  
@@ -146,8 +142,6 @@ Used for:
 
 
 ## PART 10 — MAIN LOOP
-
-You will use:
 
 • readline()  
 • add_history()  
