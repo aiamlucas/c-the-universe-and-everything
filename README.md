@@ -32,9 +32,9 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 ### Minishell
 
 - [Shell Basics](minishell/shell-basics.md)
-- [Allowed Functions Explained](minishell/allowed-functions-explained.md)
 - [Explaining Shell](minishell/explaining-shell.md)
 - [Functions Usage Map](minishell/functions-usage-map.md)
+- [Allowed Functions Explained](minishell/allowed-functions-explained.md)
 - [Project Documentation](minishell/project-documentation.md)
 
 ### Minitalk
@@ -57,6 +57,11 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 ### Sysadmins
 
 - [Born 2 Be Root](sysadmins/born-2-be-root/born-2-be-root.md)
+
+### Testing-Projects
+
+- [Get Next Line Tests](testing-projects/get-next-line-tests.md)
+- [Get Next Line Bonus Tests](testing-projects/get-next-line-bonus-tests.md)
 
 <!-- INDEX-END -->
 
