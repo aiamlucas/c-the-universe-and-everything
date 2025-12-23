@@ -319,6 +319,44 @@ Global variable: `volatile sig_atomic_t g_signal`
 
 ---
 
+## Tests
+
+A basic custom test suite is included for validating the lexer independently from the full minishell execution.
+
+Currently implemented:
+- Lexer tests (`test-lexer`)
+- Tokenization, operators, spacing, and basic edge cases
+
+---
+
+### Running Tests
+
+```
+make test-lexer
+```
+Builds the lexer test binary.
+
+```
+make run-test-lexer
+```
+Runs the lexer tests.
+
+```
+make run-test-lexer-valgrind
+```
+Runs the lexer tests under valgrind (using readline suppression).
+
+---
+
+### Notes about the tests / TODO
+
+- Tests currently cover only the lexer
+- Parser tests are not implemented yet
+- Executor tests are not implemented yet
+- Additional tests will follow the same structure
+
+---
+
 ## Current Status
 
  **Completed:**
