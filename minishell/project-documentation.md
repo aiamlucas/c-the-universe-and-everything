@@ -357,22 +357,267 @@ Runs the lexer tests under valgrind (using readline suppression).
 
 ---
 
-## Current Status
+# Signal Handling
 
- **Completed:**
-- Basi Tokenizer (lexer)
-- Token linked list utilities
-- Parser (basic pipes + redirections)
-- Command linked list utilities
-- Redirection linked list utilities
-- Debug print functions
+## 1. What are signals?
 
- **TODO:**
-- Quote handling (' and ")                                        - in lexer
-- Variable expansion (`$VAR`, `$`?)                               - new expansion.c (between lexer and parser)
-- Quote removal                                                   - in expansion.c (after variable expansion)
-- Execution (fork, pipe, execve)                                  - new executor module
-- Built-in commands (echo, cd, pwd, export, unset, env, exit)     - new builtins module
-- Signal handling (`Ctrl+C`, `Ctrl+D`, `Ctrl+\`)                  - in main loop + executor
-- Heredoc implementation (<<)                                     - in parser + executor
-- Error handling improvements                                     - throughout all modules
+Signals are **asynchronous notifications** sent by the kernel to a process to inform it that an event occurred.
+
+Common signals in a shell context:
+
+| Signal   | Meaning                           | Typical source |
+|----------|-----------------------------------|----------------|
+| SIGINT   | Interrupt                         | Ctrl + C       |
+| SIGQUIT  | Quit (core dump)                  | Ctrl + \       |
+| SIGTERM  | Termination request               | kill           |
+| SIGKILL  | Forced kill (cannot be handled)   | kill -9        |
+
+In a **shell**, signals must be handled differently depending on:
+- Whether the shell is **waiting for input**
+- Whether a **child process** is running
+- Whether the command is a **builtin**
+
+---
+
+## 2. Why signal handling is special in a shell
+
+A shell is a **long-running parent process** that:
+- Spawns child processes (`fork`)
+- Executes commands (`execve`)
+- Must **survive Ctrl+C**, not die
+- Must propagate correct **exit codes**
+
+Key rule:
+
+> **The parent shell should not die on SIGINT, but child processes should.**
+
+That is why signals must be:
+- **Custom-handled in the parent**
+- **Reset to default in children**
+
+---
+
+## 3. Global signal state
+
+The project uses a global variable to store received signals:
+
+```
+volatile sig_atomic_t g_signal_received;
+```
+
+Why this type?
+- `sig_atomic_t` is **safe to modify inside signal handlers**
+- `volatile` prevents compiler optimizations that could break async access
+
+This variable allows the shell to:
+- Detect that a signal happened
+- Convert it into a proper shell exit code
+
+---
+
+## 4. Parent signal handling (interactive shell)
+
+### 4.1 Signal handler
+
+```
+void handle_sigint(int sig)
+{
+	(void)sig;
+	g_signal_received = SIGINT;
+	write(STDOUT_FILENO, "\n", 1);
+}
+```
+
+Important points:
+- **Only async-signal-safe functions are used**
+- No `malloc`, no `printf`, no readline calls
+- Only sets the global state and prints a newline
+
+This matches how real shells behave:
+- Ctrl+C clears the line
+- Shell remains alive
+
+---
+
+### 4.2 Installing parent handlers
+
+```
+void setup_signals(void)
+{
+	struct sigaction sa_int;
+	struct sigaction sa_quit;
+
+	g_signal_received = 0;
+
+	ft_memset(&sa_int, 0, sizeof(struct sigaction));
+	sigemptyset(&sa_int.sa_mask);
+	sa_int.sa_handler = handle_sigint;
+	sa_int.sa_flags = SA_RESTART;
+	sigaction(SIGINT, &sa_int, NULL);
+
+	ft_memset(&sa_quit, 0, sizeof(struct sigaction));
+	sigemptyset(&sa_quit.sa_mask);
+	sa_quit.sa_handler = SIG_IGN;
+	sigaction(SIGQUIT, &sa_quit, NULL);
+}
+```
+
+Behavior:
+- `SIGINT` → custom handler
+- `SIGQUIT` → ignored
+- `SA_RESTART` → interrupted system calls restart automatically
+
+This configuration is active **only in the parent shell**.
+
+---
+
+## 5. Resetting signals in child processes
+
+### Why this is required
+
+After `fork()`, the child **inherits signal handlers** from the parent.
+
+If we do nothing:
+- Ctrl+C would NOT kill commands like `sleep`
+- This would break expected shell behavior
+
+### Reset function
+
+```
+void reset_signals(void)
+{
+	struct sigaction sa;
+
+	g_signal_received = 0;
+	ft_memset(&sa, 0, sizeof(struct sigaction));
+	sigemptyset(&sa.sa_mask);
+	sa.sa_handler = SIG_DFL;
+
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGQUIT, &sa, NULL);
+}
+```
+
+This restores:
+- `SIGINT` → default (terminate)
+- `SIGQUIT` → default (core dump)
+
+---
+
+### Where reset_signals() is called
+
+- In **single command children**
+- In **forked builtin execution**
+- In **pipeline child processes**
+
+This guarantees:
+- External commands behave like in bash
+- Signals kill child processes correctly
+
+---
+
+## 6. Signal-aware execution flow
+
+### 6.1 Single command execution
+
+1. Parent forks
+2. Child:
+   - Calls `reset_signals()`
+   - Applies redirections
+   - Executes command
+3. Parent:
+   - Waits for child
+   - Converts signal termination to exit code
+
+```
+if (WIFSIGNALED(status))
+	return (128 + WTERMSIG(status));
+```
+
+---
+
+### 6.2 Pipeline execution
+
+- Each pipeline command runs in its own child
+- All children reset signals
+- Parent waits only for the **last command**
+- Exit code follows bash rules
+
+After waiting:
+```
+if (check_signal())
+	return (get_signal_exit_code());
+```
+
+---
+
+## 7. Exit codes and signals
+
+Shell convention:
+- Normal exit → return program exit code
+- Signal exit → `128 + signal_number`
+
+Examples:
+
+| Action            | Exit code |
+|------------------|-----------|
+| Ctrl+C (SIGINT)  | 130       |
+| Ctrl+\ (SIGQUIT) | 131       |
+
+Implementation:
+
+```
+int get_signal_exit_code(void)
+{
+	int code;
+
+	if (g_signal_received == 0)
+		return (0);
+	code = 128 + g_signal_received;
+	g_signal_received = 0;
+	return (code);
+}
+```
+
+---
+
+## 8. Builtins and signals
+
+### Builtins that must run in the parent
+
+Some builtins **modify shell state**, so running them in a child would lose changes:
+
+- `cd` → changes working directory
+- `export` / `unset` → modify environment
+- `exit` → terminates shell
+
+```
+bool must_run_in_parent(t_command *cmd)
+{
+	if (ft_strcmp(cmd->argv[0], "cd") == 0)
+		return (true);
+	if (ft_strcmp(cmd->argv[0], "export") == 0)
+		return (true);
+	if (ft_strcmp(cmd->argv[0], "unset") == 0)
+		return (true);
+	if (ft_strcmp(cmd->argv[0], "exit") == 0)
+		return (true);
+	return (false);
+}
+```
+
+Other builtins (`echo`, `pwd`, `env`) can safely run in children.
+
+---
+
+## 9. Readline integration
+
+The signal handler **does not touch readline**.
+
+Instead:
+- Signals are detected **after readline returns
+- Cleanup is done in normal control flow
+
+This avoids undefined behavior and matches GNU Readline requirements.
+
+---
