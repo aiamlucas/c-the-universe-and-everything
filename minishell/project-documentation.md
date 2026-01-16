@@ -270,16 +270,16 @@ while (1)
     // 1. Tokenize
     tokens = lexer(prompt);
     
-    // 2. Expand variables (TODO!)
+    // 2. Expand variables
     expand_variables(tokens, data.envp, data.last_exit);
     
-    // 3. Remove quotes (TODO!)
+    // 3. Remove quotes
     remove_quotes(tokens);
     
     // 4. Parse
     commands = parser(tokens);
     
-    // 5. Execute (TODO!)
+    // 5. Execute
     // execute(commands);
     
     // Cleanup
@@ -309,13 +309,7 @@ argv[2] = NULL
 - Passed to execve()
 
 ### Error Handling
-- **Syntax errors:** Use ft_printf (e.g., "syntax error near '|'")
-- **System errors:** Use perror (e.g., "cat: No such file or directory")
-
-### Signal Handling (TODO)
-Global variable: `volatile sig_atomic_t g_signal`
-- Parent: custom SIGINT handler
-- Child: SIG_DFL
+- TODO...
 
 ---
 
@@ -326,6 +320,7 @@ A basic custom test suite is included for validating the lexer independently fro
 Currently implemented:
 - Lexer tests (`test-lexer`)
 - Tokenization, operators, spacing, and basic edge cases
+- TODO (other tests... builtins, signals, etc.)
 
 ---
 
@@ -348,29 +343,45 @@ Runs the lexer tests under valgrind (using readline suppression).
 
 ---
 
-### Notes about the tests / TODO
+## Signal Handling
 
-- Tests currently cover only the lexer
-- Parser tests are not implemented yet
-- Executor tests are not implemented yet
-- Additional tests will follow the same structure
-
----
-
-# Signal Handling
-
-## 1. What are signals?
+### 1. What are signals?
 
 Signals are **asynchronous notifications** sent by the kernel to a process to inform it that an event occurred.
 
-Common signals in a shell context:
+They can be triggered by:
+- The user (keyboard shortcuts)
+- The operating system
+- Other processes (via `kill`)
 
-| Signal   | Meaning                           | Typical source |
-|----------|-----------------------------------|----------------|
-| SIGINT   | Interrupt                         | Ctrl + C       |
-| SIGQUIT  | Quit (core dump)                  | Ctrl + \       |
-| SIGTERM  | Termination request               | kill           |
-| SIGKILL  | Forced kill (cannot be handled)   | kill -9        |
+These are the siganls that need to be implemented in minishell:
+
+**Small example:**
+
+When the user presses **Ctrl + C**:
+- The terminal driver sends a `SIGINT` signal
+- The kernel delivers it to the foreground process (or process group)
+- The process either:
+  - Handles it
+  - Ignores it
+  - Terminates (default behavior)
+
+In a normal program, `SIGINT` usually **kills the process**.  
+In a shell, this behavior must be customized.
+
+---
+
+### Signals required by the minishell subject
+
+These are the signals that must be handled according to the subject:
+
+| Signal   | Key combo       |
+|----------|-----------------|
+| SIGINT   | Ctrl + C        |
+| SIGQUIT  | Ctrl + \        |
+| EOF      | Ctrl + D        |
+
+Other signals (SIGTERM, SIGKILL, etc.) are not mandatory in the minishell projet.
 
 In a **shell**, signals must be handled differently depending on:
 - Whether the shell is **waiting for input**
@@ -379,7 +390,7 @@ In a **shell**, signals must be handled differently depending on:
 
 ---
 
-## 2. Why signal handling is special in a shell
+### 2. Why signal handling is special in a shell
 
 A shell is a **long-running parent process** that:
 - Spawns child processes (`fork`)
@@ -391,13 +402,75 @@ Key rule:
 
 > **The parent shell should not die on SIGINT, but child processes should.**
 
+### Why this rule exists
+
+If the shell did not handle signals specially:
+- Pressing Ctrl+C would kill the shell itself
+- The user would lose the session
+
+Instead:
+- Ctrl+C should **cancel the current command**
+- The shell should **print a new prompt**
+- Execution should continue normally
+
 That is why signals must be:
 - **Custom-handled in the parent**
 - **Reset to default in children**
 
 ---
 
-## 3. Global signal state
+#### Parent vs Child behavior
+
+Signals behave differently depending on whether they are received by:
+- the **interactive shell (parent)**
+- or a **running command (child)**
+
+---
+
+##### Interactive mode (parent shell)
+
+| Signal   | Key combo | Behavior                                   |
+|----------|-----------|--------------------------------------------|
+| SIGINT   | Ctrl + C  | Cancel current input, display a new prompt |
+| SIGQUIT  | Ctrl + \  | Ignored (does nothing)                     |
+| EOF      | Ctrl + D  | Exit the shell                             |
+
+---
+
+##### Single command execution (child process)
+
+| Signal   | Key combo | Behavior                   |
+|----------|-----------|----------------------------|
+| SIGINT   | Ctrl + C  | Terminate command          |
+| SIGQUIT  | Ctrl + \  | Quit command (core dumped) |
+| SIGTERM  | kill      | Terminate command          |
+
+The exit codes follow POSIX rules:
+
+- `128 + signal_number`
+
+Example:
+- SIGINT (2) → exit code `130`
+- SIGQUIT (3) → exit code `131`
+
+---
+
+##### Pipeline execution (`cmd1 | cmd2 | cmd3`)
+
+| Signal   | Key combo | Behavior                               |
+|----------|-----------|----------------------------------------|
+| SIGINT   | Ctrl + C  | Interrupt all commands in the pipeline |
+| SIGQUIT  | Ctrl + \  | Quit all commands in the pipeline      |
+| SIGTERM  | kill      | Terminate all commands                 |
+
+In pipeline execution, the shell:
+- Waits for all children
+- Returns the **exit status of the last command**
+- Exit codes follow POSIX rules: `128 + signal`
+
+---
+
+### 3. Global signal state
 
 The project uses a global variable to store received signals:
 
@@ -405,19 +478,34 @@ The project uses a global variable to store received signals:
 volatile sig_atomic_t g_signal_received;
 ```
 
-Why this type?
-- `sig_atomic_t` is **safe to modify inside signal handlers**
-- `volatile` prevents compiler optimizations that could break async access
+#### Why a global variable is required
+
+- Signal handlers cannot receive user data
+- Signal handlers cannot safely access complex structures
 
 This variable allows the shell to:
-- Detect that a signal happened
-- Convert it into a proper shell exit code
+- Detect that a signal occurred
+- Defer handling to normal program flow
+- Convert signals into correct shell exit codes
+
+#### Why `sig_atomic_t`
+
+- Guarantees **atomic read/write**: the signal value is read or written in a single,
+  indivisible operation, so it can never be partially updated while a signal
+  interrupts the program.
+- Safe to modify inside a signal handler
+- Prevents data races during asynchronous execution
+
+#### Why `volatile`
+
+- Prevents compiler optimizations that could break async access
+- Ensures the variable is always read from memory
 
 ---
 
-## 4. Parent signal handling (interactive shell)
+### 4. Parent signal handling (interactive shell)
 
-### 4.1 Signal handler
+#### 4.1 Signal handler
 
 ```
 void handle_sigint(int sig)
@@ -430,8 +518,9 @@ void handle_sigint(int sig)
 
 Important points:
 - **Only async-signal-safe functions are used**
-- No `malloc`, no `printf`, no readline calls
-- Only sets the global state and prints a newline
+- No `malloc`
+- No `printf`
+- No readline calls
 
 This matches how real shells behave:
 - Ctrl+C clears the line
@@ -439,7 +528,23 @@ This matches how real shells behave:
 
 ---
 
-### 4.2 Installing parent handlers
+### 4.2 About `sigaction`
+
+`sigaction` is the modern, safe way to install signal handlers.
+
+It allows:
+- Precise control over signal behavior
+- Reliable behavior across systems
+- Blocking of other signals during handling
+
+Key fields:
+- `sa_handler` → function to call
+- `sa_mask` → signals to block while handling
+- `sa_flags` → behavior modifiers (`SA_RESTART`, etc.
+
+---
+
+#### Installing parent handlers
 
 ```
 void setup_signals(void)
@@ -449,16 +554,16 @@ void setup_signals(void)
 
 	g_signal_received = 0;
 
-	ft_memset(&sa_int, 0, sizeof(struct sigaction));
-	sigemptyset(&sa_int.sa_mask);
-	sa_int.sa_handler = handle_sigint;
-	sa_int.sa_flags = SA_RESTART;
-	sigaction(SIGINT, &sa_int, NULL);
+	ft_memset(&sa_int, 0, sizeof(struct sigaction)); // clear entire sigaction structure to avoid garbage value
+	sigemptyset(&sa_int.sa_mask); // initialize an empty signal mask, so no signals are blocked while handling SIGINT
+	sa_int.sa_handler = handle_sigint; // assign the custom SIGINT handler 
+	sa_int.sa_flags = SA_RESTART; // Restart interrupted system calls (readline..)
+	sigaction(SIGINT, &sa_int, NULL);  // Register the SIGINT handler
 
 	ft_memset(&sa_quit, 0, sizeof(struct sigaction));
 	sigemptyset(&sa_quit.sa_mask);
-	sa_quit.sa_handler = SIG_IGN;
-	sigaction(SIGQUIT, &sa_quit, NULL);
+	sa_quit.sa_handler = SIG_IGN;  // Ignore SIGQUIT (Ctrl+\ does nothing in interactive shell)
+	sigaction(SIGQUIT, &sa_quit, NULL); // Register the SIGQUIT behavior
 }
 ```
 
@@ -471,9 +576,9 @@ This configuration is active **only in the parent shell**.
 
 ---
 
-## 5. Resetting signals in child processes
+### 5. Resetting signals in child processes
 
-### Why this is required
+#### Why this is required
 
 After `fork()`, the child **inherits signal handlers** from the parent.
 
@@ -481,20 +586,24 @@ If we do nothing:
 - Ctrl+C would NOT kill commands like `sleep`
 - This would break expected shell behavior
 
-### Reset function
+#### Reset function
 
 ```
 void reset_signals(void)
 {
 	struct sigaction sa;
 
-	g_signal_received = 0;
-	ft_memset(&sa, 0, sizeof(struct sigaction));
-	sigemptyset(&sa.sa_mask);
+	g_signal_received = 0;  // Clear any previously recorded signal
+	ft_memset(&sa, 0, sizeof(struct sigaction)); // Reset the structure
+	sigemptyset(&sa.sa_mask); // No signals blocked during handling
+
+	// Restore default signal behavior
+	// SIGINT → terminat 
+	// SIGQUIT →  core dump
 	sa.sa_handler = SIG_DFL;
 
-	sigaction(SIGINT, &sa, NULL);
-	sigaction(SIGQUIT, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL); // Apply default behavior to SIGINT
+	sigaction(SIGQUIT, &sa, NULL); // Apply dafault behavior to SIGQUIT
 }
 ```
 
@@ -516,9 +625,9 @@ This guarantees:
 
 ---
 
-## 6. Signal-aware execution flow
+### 6. Signal-aware execution flow
 
-### 6.1 Single command execution
+#### 6.1 Single command execution
 
 1. Parent forks
 2. Child:
@@ -527,7 +636,7 @@ This guarantees:
    - Executes command
 3. Parent:
    - Waits for child
-   - Converts signal termination to exit code
+   - Converts signal to exit code
 
 ```
 if (WIFSIGNALED(status))
@@ -536,7 +645,7 @@ if (WIFSIGNALED(status))
 
 ---
 
-### 6.2 Pipeline execution
+#### Pipeline execution
 
 - Each pipeline command runs in its own child
 - All children reset signals
@@ -551,7 +660,7 @@ if (check_signal())
 
 ---
 
-## 7. Exit codes and signals
+### 7. Exit codes and signals
 
 Shell convention:
 - Normal exit → return program exit code
@@ -560,9 +669,9 @@ Shell convention:
 Examples:
 
 | Action            | Exit code |
-|------------------|-----------|
-| Ctrl+C (SIGINT)  | 130       |
-| Ctrl+\ (SIGQUIT) | 131       |
+|-------------------|-----------|
+| Ctrl+C (SIGINT)   | 130       |
+| Ctrl+\ (SIGQUIT)  | 131       |
 
 Implementation:
 
@@ -581,9 +690,9 @@ int get_signal_exit_code(void)
 
 ---
 
-## 8. Builtins and signals
+### 8. Builtins and signals
 
-### Builtins that must run in the parent
+#### Builtins that must run in the parent
 
 Some builtins **modify shell state**, so running them in a child would lose changes:
 
@@ -610,7 +719,7 @@ Other builtins (`echo`, `pwd`, `env`) can safely run in children.
 
 ---
 
-## 9. Readline integration
+### 9. Readline integration
 
 The signal handler **does not touch readline**.
 
