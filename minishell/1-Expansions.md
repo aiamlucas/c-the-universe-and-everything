@@ -271,17 +271,17 @@ Rule: Undefined becomes empty string
 
 #### Test 1.3: Variable with prefix
 Input tokens: [prefix$USER]
-After expansion: [prefixjohn]
+After expansion: [prefixanna]
 Rule: Text before variable preserved
 
 #### Test 1.4: Variable with suffix
 Input tokens: [$USERsuffix]
-After expansion: [johnsuffix]
+After expansion: [annasuffix]
 Rule: Text after variable preserved
 
 #### Test 1.5: Variable with both
 Input tokens: [prefix$USERsuffix]
-After expansion: [prefixjohnsuffix]
+After expansion: [prefixannasuffix]
 Rule: Text on both sides preserved
 
 #### Test 1.6: Multiple variables
