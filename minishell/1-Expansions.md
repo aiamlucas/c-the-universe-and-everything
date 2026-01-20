@@ -257,7 +257,7 @@ Output: Token list after expansion (quotes KEPT)
 
 ---
 
-### Basic Variable Expansion (10 tests)
+### Basic Variable Expansion (8 tests)
 
 #### Test 1.1: Simple variable
 Input tokens: [$USER]
@@ -274,37 +274,27 @@ Input tokens: [prefix$USER]
 After expansion: [prefixanna]
 Rule: Text before variable preserved
 
-#### Test 1.4: Variable with suffix
-Input tokens: [$USERsuffix]
-After expansion: [annasuffix]
-Rule: Text after variable preserved
-
-#### Test 1.5: Variable with both
-Input tokens: [prefix$USERsuffix]
-After expansion: [prefixannasuffix]
-Rule: Text on both sides preserved
-
-#### Test 1.6: Multiple variables
+#### Test 1.4: Multiple variables
 Input tokens: [$USER$HOME]
 After expansion: [anna/home/anna]
 Rule: Both expanded, no separator
 
-#### Test 1.7: Variables with separator
+#### Test 1.5: Variables with separator
 Input tokens: [$USER:$HOME]
 After expansion: [anna:/home/anna]
 Rule: Colon separator preserved
 
-#### Test 1.8: Variable with special char
+#### Test 1.6: Variable with special char
 Input tokens: [$USER@host]
 After expansion: [anna@host]
 Rule: Variable stops at @, @ is literal
 
-#### Test 1.9: Variable with dot
+#### Test 1.7: Variable with dot
 Input tokens: [$USER.txt]
 After expansion: [anna.txt]
 Rule: Variable stops at dot
 
-#### Test 1.10: Variable with dash
+#### Test 1.8: Variable with dash
 Input tokens: [$USER-test]
 After expansion: [anna-test]
 Rule: Variable stops at dash
@@ -383,7 +373,7 @@ Rule: USER123 is full variable name (depends if exists)
 
 #### Test 4.2: Variable with underscore
 Input tokens: [$USER_NAME]
-After expansion: [john_doe]
+After expansion: [anna_smith]
 Rule: Underscore valid in variable name
 
 #### Test 4.3: Variable stops at slash
@@ -514,13 +504,13 @@ After expansion: ["anna"'$HOME']
 Rule: First part expanded, second not
 
 #### Test 7.2: Single then double
-Input tokens: ['$USER'"$HOME"']
-After expansion: ['$USER'"/home/anna"']
+Input tokens: ['$USER'"$HOME"]
+After expansion: ['$USER'"/home/anna"]
 Rule: First part not expanded, second expanded
 
 #### Test 7.3: Three segments
-Input tokens: ["$USER"'literal'"$HOME"']
-After expansion: ["anna"'literal'"/home/anna"']
+Input tokens: ["$USER"'literal'"$HOME"]
+After expansion: ["anna"'literal'"/home/anna"]
 Rule: Double quote parts expanded, single not
 
 #### Test 7.4: Unquoted then double
@@ -582,13 +572,13 @@ Rule: Undefined disappears, quotes kept
 ### Complex Cases (8 tests)
 
 #### Test 9.1: Everything combined
-Input tokens: [prefix"$USER"'$HOME'$SHELL:$?suffix]
-After expansion: [prefix"anna"'$HOME'/bin/bash:0suffix]
+Input tokens: [prefix"$USER"'$HOME'$SHELL:$?end]
+After expansion: [prefix"anna"'$HOME'/bin/bash:0end]
 Rule: Expand in double/unquoted, not in single
 
 #### Test 9.2: Many variables with text
 Input tokens: [a$USER:b$HOME:c$SHELL:d]
-After expansion: [ajohn:b/home/anna:c/bin/bash:d]
+After expansion: [aanna:b/home/anna:c/bin/bash:d]
 Rule: All variables expanded, separators kept
 
 #### Test 9.3: Nested-looking quotes
@@ -618,7 +608,7 @@ Rule: Each token expanded independently
 
 #### Test 9.8: Quote state transitions
 Input tokens: [a"b$USER"c'$HOME'd]
-After expansion: [a"bjohn"c'$HOME'd]
+After expansion: [a"banna"c'$HOME'd]
 Rule: Track state through transitions
 
 ---
@@ -707,7 +697,7 @@ After removal: [helloworld]
 Rule: Remove all quote characters
 
 #### Test 3.2: Single then double
-Input tokens: ['hello'"world"']
+Input tokens: ['hello'"world"]
 After removal: [helloworld]
 Rule: Remove all quote characters
 
@@ -727,7 +717,7 @@ After removal: [atextb]
 Rule: Remove quotes, keep text
 
 #### Test 3.6: Alternating many times
-Input tokens: ["1"'2'"3"'4'"5"']
+Input tokens: ["1"'2'"3"'4'"5"]
 After removal: [12345]
 Rule: Remove all quotes
 
@@ -884,7 +874,7 @@ After quotes: [grep] [pattern] [file1] [file2] [file3]
 Expected: cmd1->argv = ["grep", "pattern", "file1", "file2", "file3", NULL]
 
 
-### Variable Expansion Integration (8 tests)
+### Variable Expansion Integration (7 tests)
 
 #### Test 2.1: Simple variable
 Input: echo $USER
@@ -900,42 +890,35 @@ After expansion: [echo] [anna] [/home/anna]
 After quotes: [echo] [anna] [/home/anna]
 Expected: cmd1->argv = ["echo", "anna", "/home/anna", NULL]
 
-#### Test 2.3: Variable with text
-Input: echo prefix$USERsuffix
-Token list: [echo] [prefix$USERsuffix]
-After expansion: [echo] [prefixjohnsuffix]
-After quotes: [echo] [prefixjohnsuffix]
-Expected: cmd1->argv = ["echo", "prefixjohnsuffix", NULL]
-
-#### Test 2.4: Undefined variable
+#### Test 2.3: Undefined variable
 Input: echo $UNDEFINED test
 Token list: [echo] [$UNDEFINED] [test]
 After expansion: [echo] [] [test]
 After quotes: [echo] [] [test]
 Expected: cmd1->argv = ["echo", "", "test", NULL]
 
-#### Test 2.5: Exit status
+#### Test 2.4: Exit status
 Input: echo $?
 Token list: [echo] [$?]
 After expansion: [echo] [0]
 After quotes: [echo] [0]
 Expected: cmd1->argv = ["echo", "0", NULL]
 
-#### Test 2.6: Adjacent variables
+#### Test 2.5: Adjacent variables
 Input: echo $USER$HOME
 Token list: [echo] [$USER$HOME]
 After expansion: [echo] [anna/home/anna]
 After quotes: [echo] [anna/home/anna]
 Expected: cmd1->argv = ["echo", "anna/home/anna", NULL]
 
-#### Test 2.7: Variable in middle
+#### Test 2.6: Variable in middle
 Input: echo before $USER after
 Token list: [echo] [before] [$USER] [after]
 After expansion: [echo] [before] [anna] [after]
 After quotes: [echo] [before] [anna] [after]
 Expected: cmd1->argv = ["echo", "before", "anna", "after", NULL]
 
-#### Test 2.8: All undefined
+#### Test 2.7: All undefined
 Input: echo $A $B $C
 Token list: [echo] [$A] [$B] [$C]
 After expansion: [echo] [] [] []
@@ -991,15 +974,15 @@ Expected: cmd1->argv = ["echo", "", "test", NULL]
 Input: echo "$USER"'literal'test
 Token list: [echo] ["$USER"'literal'test]
 After expansion: [echo] ["anna"'literal'test]
-After quotes: [echo] [johnliteraltest]
-Expected: cmd1->argv = ["echo", "johnliteraltest", NULL]
+After quotes: [echo] [annaliteraltest]
+Expected: cmd1->argv = ["echo", "annaliteraltest", NULL]
 
 #### Test 3.8: Complex quotes
 Input: echo pre"$USER"'$HOME'post
 Token list: [echo] [pre"$USER"'$HOME'post]
 After expansion: [echo] [pre"anna"'$HOME'post]
-After quotes: [echo] [prejohn$HOMEpost]
-Expected: cmd1->argv = ["echo", "prejohn$HOMEpost", NULL]
+After quotes: [echo] [preanna$HOMEpost]
+Expected: cmd1->argv = ["echo", "preanna$HOMEpost", NULL]
 
 
 ### Redirections Integration (6 tests)
@@ -1118,12 +1101,12 @@ Expected:
   cmd1->argv = ["echo", "", "", "", NULL]
 
 #### Test 6.3: Complex mixing
-Input: echo pre$USER"$HOME"'$SHELL'post
-Token list: [echo] [pre$USER"$HOME"'$SHELL'post]
-After expansion: [echo] [prejohn"/home/anna"'$SHELL'post]
-After quotes: [echo] [prejohn/home/anna$SHELLpost]
+Input: echo $USER:$HOME'$SHELL'end
+Token list: [echo] [$USER:$HOME'$SHELL'end]
+After expansion: [echo] [anna:/home/anna'$SHELL'end]
+After quotes: [echo] [anna:/home/anna$SHELLend]
 Expected:
-  cmd1->argv = ["echo", "prejohn/home/anna$SHELLpost", NULL]
+  cmd1->argv = ["echo", "anna:/home/anna$SHELLend", NULL]
 
 #### Test 6.4: Variable in every position
 Input: $CMD $ARG1 "$ARG2" > $OUT
