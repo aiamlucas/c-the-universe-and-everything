@@ -320,47 +320,74 @@ Rule: Both replaced with same value
 
 ---
 
-### Edge Cases - Dollar Sign (8 tests)
+### Edge Cases (8 tests)
 
-#### Test 3.1: Dollar alone
+> Bash supports “special parameters” (not environment variables):
+
+- $? : exit status of last foreground command
+- $$ : PID of the current shell
+- $! : PID of the last background job
+- $0 : name of the shell / script
+- $1, $2, … : positional arguments (script/function args)
+- $# : number of positional arguments
+- $@ : all positional arguments (preserves words; quote-sensitive)
+- $* : all positional arguments as one string (quote/IFS-sensitive)
+- $- : current shell option flags
+- $_ : last argument of the previous command
+
+Minishell mandatory requirement:
+- Expand only:
+  - $NAME (environment variables), NAME = [A-Za-z_][A-Za-z0-9_]*
+  - $? (exit status)
+
+Minishell rule for everything else:
+- If '$' is NOT followed by '?' or NOT by a valid env-var name start:
+	- first character: a letter (a-z or A-Z) or _
+	- following characters: letters, digits (0-9), or _
+  then '$' is treated as a LITERAL character and the next character is NOT consumed.
+
+--- Tests (minishell expected results + bash behavior) ---
+
+#### Test SP.1: Dollar alone
 Input tokens: [$]
-After expansion: [$]
-Rule: $ without variable name stays literal
+After expansion (minishell): [$]
+Bash difference: Same as minishell (no name after '$', so '$' stays literal)
 
-#### Test 3.2: Dollar with space after
+#### Test SP.2: Dollar followed by whitespace
 Input tokens: [$ test]
-After expansion: [$ test]
-Rule: $ followed by space is literal
+After expansion (minishell): [$ test]
+Bash difference: Same as minishell ('$' is not followed by a valid name start, so '$' stays literal)
 
-#### Test 3.3: Dollar before invalid char
-Input tokens: [$@test]
-After expansion: [test]
-Rule: Variable name empty (@ invalid), expands to empty
+#### Test SP.3: Dollar followed by punctuation (invalid start)
+Input tokens: [$+abc]
+After expansion (minishell): [$+abc]
+Bash difference: Same as minishell ('+' is not a valid variable-name start, so '$' is literal)
 
-#### Test 3.4: Dollar before number
+#### Test SP.4: Dollar followed by digit (positional params)
 Input tokens: [$1test]
-After expansion: [test]
-Rule: Variable "1" undefined, expands to empty
+After expansion (minishell): [$1test]
+Bash difference: Different (bash expands $1 to the first positional argument in scripts/functions; if unset it becomes empty, so it may look like "test")
 
-#### Test 3.5: Consecutive dollars
-Input tokens: [$$USER]
-After expansion: [anna]
-Rule: First $ is empty variable, second starts $USER
+#### Test SP.5: Dollar followed by @ (positional params list)
+Input tokens: [$@test]
+After expansion (minishell): [$@test]
+Bash difference: Different (bash expands $@ to positional arguments; if there are none it becomes empty, so it may look like "test" in some contexts)
 
-#### Test 3.6: Dollar at end
-Input tokens: [test$]
-After expansion: [test$]
-Rule: $ at end stays literal
-
-#### Test 3.7: Just dollar signs
+#### Test SP.6: Double dollar (PID)
 Input tokens: [$$]
-After expansion: []
-Rule: Both expand to empty
+After expansion (minishell): [$$]
+Bash difference: Different (bash expands $$ to the PID of the current shell)
 
-#### Test 3.8: Dollar before quote
+#### Test SP.7: Double dollar + env var after
+Input tokens: [$$USER]
+After expansion (minishell): [$anna]   (assuming USER=anna)
+Bash difference: Different (bash expands $$ to PID, then appends literal "USER" => e.g. "12345USER")
+
+#### Test SP.8: Dollar before quote character
 Input tokens: [$"test]
-After expansion: ["test]
-Rule: Variable name empty, quote starts
+After expansion (minishell): [$"test]
+Bash difference: Same as minishell ('"' is not a valid variable-name start, so '$' is literal)
+Note: quote handling/removal is a separate step.
 
 ---
 
@@ -390,11 +417,6 @@ Rule: Equals not valid in variable name
 Input tokens: [$USER(test)]
 After expansion: [anna(test)]
 Rule: Bracket not valid in variable name
-
-#### Test 4.6: Variable stops at pipe
-Input tokens: [$USER|command]
-After expansion: [anna|command]
-Rule: Pipe not valid in variable name
 
 ---
 
