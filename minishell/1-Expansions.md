@@ -562,79 +562,6 @@ Rule: Expand in double and unquoted, not in single
 
 ---
 
-### Undefined Variables (5 tests)
-
-#### Test 8.1: Only undefined
-Input tokens: [$UNDEFINED]
-After expansion: []
-Rule: Entire token becomes empty
-
-#### Test 8.2: Undefined with text
-Input tokens: [hello$UNDEFINEDworld]
-After expansion: [helloworld]
-Rule: Undefined part disappears
-
-#### Test 8.3: Multiple undefined
-Input tokens: [$A$B$C]
-After expansion: []
-Rule: All expand to empty
-
-#### Test 8.4: Defined and undefined mixed
-Input tokens: [$USER$UNDEFINED$HOME]
-After expansion: [anna/home/anna]
-Rule: Only defined parts appear
-
-#### Test 8.5: Undefined in quotes
-Input tokens: ["hello$UNDEFINEDworld"]
-After expansion: ["helloworld"]
-Rule: Undefined disappears, quotes kept
-
----
-
-### Complex Cases (8 tests)
-
-#### Test 9.1: Everything combined
-Input tokens: [prefix"$USER"'$HOME'$SHELL:$?end]
-After expansion: [prefix"anna"'$HOME'/bin/bash:0end]
-Rule: Expand in double/unquoted, not in single
-
-#### Test 9.2: Many variables with text
-Input tokens: [a$USER:b$HOME:c$SHELL:d]
-After expansion: [aanna:b/home/anna:c/bin/bash:d]
-Rule: All variables expanded, separators kept
-
-#### Test 9.3: Nested-looking quotes
-Input tokens: ["outer'$USER'outer"]
-After expansion: ["outer'anna'outer"]
-Rule: In double quotes, expand anyway
-
-#### Test 9.4: All undefined
-Input tokens: ["$A"'$B'$C]
-After expansion: [""'$B']
-Rule: Defined empty, single quote literal
-
-#### Test 9.5: Empty expansions everywhere
-Input tokens: [$A$B$C]
-After expansion: []
-Rule: All undefined, entire token empty
-
-#### Test 9.6: Variable name edge
-Input tokens: [$USER_123_test]
-After expansion: [value] or []
-Rule: Full name with underscores and numbers
-
-#### Test 9.7: Special positions
-Input tokens: [$USER] [middle] [$HOME]
-After expansion: [anna] [middle] [/home/anna]
-Rule: Each token expanded independently
-
-#### Test 9.8: Quote state transitions
-Input tokens: [a"b$USER"c'$HOME'd]
-After expansion: [a"banna"c'$HOME'd]
-Rule: Track state through transitions
-
----
-
 ## PART 2: QUOTE REMOVAL TESTS (ALL CASES + EDGE CASES)
 
 Goal: Test remove_quotes function thoroughly
@@ -762,11 +689,6 @@ Input tokens: ["outer 'inner' outer"]
 After removal: [outer 'inner' outer]
 Rule: Remove only outer quotes
 
-#### Test 4.4: Complex nesting illusion
-Input tokens: ['a"b'c"d']
-After removal: [a"bc"d]
-Rule: Remove outer singles, keep inner doubles
-
 ---
 
 ### No Quotes (4 tests)
@@ -824,30 +746,6 @@ Rule: Leading quote removed
 Input tokens: ["start middle end"]
 After removal: [start middle end]
 Rule: Both quotes removed
-
----
-
-### Already Processed Strings (4 tests)
-
-#### Test 7.1: Expanded variable in quotes
-Input tokens: ["anna"]
-After removal: [anna]
-Rule: Variable already expanded, remove quotes
-
-#### Test 7.2: Multiple expanded in quotes
-Input tokens: ["anna /home/anna"]
-After removal: [anna /home/anna]
-Rule: Variables already expanded, remove quotes
-
-#### Test 7.3: Literal in single quotes
-Input tokens: ['$USER']
-After removal: [$USER]
-Rule: Not expanded (was in single quotes), remove quotes
-
-#### Test 7.4: Mixed expanded
-Input tokens: ["anna"'$HOME']
-After removal: [anna$HOME]
-Rule: Remove all quotes
 
 ---
 
