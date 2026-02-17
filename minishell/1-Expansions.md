@@ -11,9 +11,6 @@ Example:
   Command runs:  echo anna
   Output:        anna
 
-This happens BETWEEN tokenization and execution.
-
-
 ## Types of Expansion
 
 ### 1. Environment Variable Expansion ($VAR)
@@ -50,7 +47,7 @@ $ echo $?
 ```
 
 
-### 3. Quoted vs Unquoted
+## Quoted vs Unquoted
 
 Behavior changes based on quotes:
 
@@ -59,7 +56,6 @@ echo $USER           → Expands
 echo "$USER"         → Expands (double quotes)
 echo '$USER'         → Does NOT expand (single quotes)
 ```
-
 
 ## The Processing Pipeline
 
@@ -76,7 +72,6 @@ Tokens: [echo] ["$USER"]
 
 Note: Quote characters are part of the token values at this stage.
 
-
 ### 2. Expansion
 Replaces variables with their values while tracking quote state
 
@@ -86,16 +81,6 @@ Input:  ["$USER"]
 Output: ["anna"]
 ```
 
-Key behaviors:
-- Variables in double quotes: **expand**
-- Variables in single quotes: **do NOT expand**
-- Quote characters: **kept in output**
-
-The expansion phase must keep quotes because they control whether 
-expansion happens. Only after we've used quotes to make expansion 
-decisions can we safely remove them.
-
-
 ### 3. Quote Removal
 Strips quote characters from tokens
 
@@ -104,9 +89,6 @@ Example:
 Input:  ["anna"]
 Output: [anna]
 ```
-
-This is a simple filter: remove all ' and " characters.
-
 
 ### 4. Parser
 Builds command structures from clean tokens
@@ -125,78 +107,7 @@ so it only needs to organize them into command structures.
 Runs the commands with the final argv arrays
 
 
-## Why This Order?
-
-**Why expansion before quote removal?**
-- Quotes determine whether expansion happens
-- "$USER" must expand, but '$USER' must not
-- We need quotes present during expansion to make this decision
-- After expansion completes, quotes have served their purpose
-
-**Why quote removal before parsing?**
-- Parser receives clean, final strings
-- No special quote handling needed in parser logic
-- Command structures contain values ready for execution
-- Simpler and cleaner separation of concerns
-
-
-## Complete Test Cases
-
-To understand how the shell behaves and ensure correctness, we can build comprehensive tests covering all cases. 
-
-**Part 1: Expansion Tests**
-- Tests expansion logic in isolation
-- Input: tokens with variables and quotes
-- Output: tokens with expanded variables (quotes still present)
-- Verifies: variable replacement, quote state tracking, edge cases
-
-**Part 2: Quote Removal Tests**
-- Tests quote removal logic in isolation
-- Input: tokens with quote characters
-- Output: tokens without quote characters
-- Verifies: proper filtering of ' and " characters
-
-**Part 3: Integration Tests**
-- Tests the complete pipeline end-to-end
-- Input: user command strings
-- Output: final argv arrays ready for execution
-- Verifies: correct integration using print_commands output
-
-
-## Reading the Tests
-
-Each test follows a consistent format:
-
-For expansion and quote removal tests:
-```
-#### Test X.Y: Description
-Input tokens: [token1] [token2]
-After expansion/removal: [result1] [result2]
-Rule: Explanation of the behavior
-```
-
-For integration tests:
-```
-#### Test X.Y: Description
-Input: command string
-Token list: [token1] [token2]
-After expansion: [expanded1] [expanded2]
-After quotes: [final1] [final2]
-Expected: cmd1->argv = ["arg0", "arg1", NULL]
-```
-
-The [token] notation represents the token list as shown by debug 
-print functions. Empty tokens are shown as [].
-
-
-## Key Implementation Concepts
-
-### Quote State Tracking
-
-During expansion, track which quote context you're in:
-- STATE_NONE: Outside quotes → expand variables
-- STATE_SINGLE: Inside ' ' → do NOT expand (everything literal)
-- STATE_DOUBLE: Inside " " → expand variables
+# Test Cases
 
 ### Variable Name Rules
 
@@ -215,7 +126,6 @@ $USER.txt   → variable is "USER", . is literal
 ### Special Variables
 
 - $? = last exit code (0-255)
-- Other special variables like $$, $0, $1 are not required for basic minishell
 
 ### Undefined Variables
 
@@ -244,16 +154,9 @@ UNDEFINED
 A, B, C
 ```
 
-Default last exit code for tests: $? = 0 (unless specified otherwise)
-
-
 ---
 
-## PART 1: EXPANSION TESTS (ALL CASES + EDGE CASES)
-
-Goal: Test expand_token_value function thoroughly
-Input: Token list representation
-Output: Token list after expansion (quotes KEPT)
+## PART 1: EXPANSION TESTS
 
 ---
 
