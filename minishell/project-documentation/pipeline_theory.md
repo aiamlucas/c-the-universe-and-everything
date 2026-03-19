@@ -119,7 +119,7 @@ pipe(pipes[1]);   // create second pipe
 ```
 
 Each `|` operator gets one pipe. The first `|` is `pipes[0]`, the
-second `|` is `pipes[1]`, and so on:
+second `|` is `pipes[1]` and so on:
 
 ```
 ls  |  grep  |  wc
@@ -148,9 +148,13 @@ setup_pipes(pipes, cmd_index, total):
         → stdout writes to current pipe's write end
 ```
 
-### 4-command example: `cat file.txt | grep hello | sort | wc -l`
-                                     ^            ^      ^                               
-                                  pipe[0]     pipe[1]   pipe[2]
+### 4 Commands Example: 
+
+```
+               cat file.txt | grep hello | sort | wc -l`
+                            ^            ^      ^                               
+                         pipe[0]     pipe[1]   pipe[2]
+```
 
 | command  | index | stdin                       | stdout                      |
 |----------|-------|-----------------------------|-----------------------------|
