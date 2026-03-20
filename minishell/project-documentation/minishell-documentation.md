@@ -94,7 +94,7 @@ end         → append cmd2 manually (no pipe triggered it)
 ## 5. Execution
 
 ### Example A [builtin] 
-### `echo hey`
+## `echo hey`
 
 Builtins that don't modify shell state (echo, pwd, env) and have no
 redirections run directly in the parent process, no fork needed.
@@ -115,7 +115,7 @@ has redirections?    → no
 ```
 
 ### Example B [external command]
-### `/bin/ls`
+## `/bin/ls`
 
 External commands always need a fork. execve() does not create a new
 process, it transforms the current one: same pid, but code, stack and
@@ -146,7 +146,7 @@ fork()
 ```
 
 ### Example C [redirection]
-### `echo hey > out.txt`
+## `echo hey > out.txt`
 
 Builtins with redirections run in a fork so the fd changes don't affect
 the shell's own stdin/stdout permanently.
@@ -168,7 +168,7 @@ fork()
 ```
 
 ### Example D [pipeline]
-### `ls | grep .c | wc -l`
+## `ls | grep .c | wc -l`
 
 N commands need N-1 pipes. All children fork simultaneously and run in parallel.
 
