@@ -273,7 +273,7 @@ $[ 🛸 ]>cat
 $[ 🛸 ]> ← clean new prompt
 ```
 
-- wihtout update_sigint:
+- without update_sigint:
 ```
 $[ 🛸 ]>cat
 ^C
