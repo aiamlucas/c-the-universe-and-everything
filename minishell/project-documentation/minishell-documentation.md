@@ -4,7 +4,7 @@
 
 ## 1. Lexer
 
-Reads the raw input and breaks it into tokens.
+Reads the raw input and breaks it into a linked list of tokens.
 Quoted sections are kept intact
 
 ```
@@ -82,7 +82,7 @@ end         → append cmd2 manually (no pipe triggered it)
 
 ┌────────────────────────────┐     ┌─────────────────────────────────────┐
 │ cmd1                       │next │ cmd2                                │next
-│ argv:  ["echo","hey",NULL] │────>│ argv:  ["wc","-c",NULL]             │────>NULL
+│ argv:  ["echo","hey",NULL] │────>│ argv:  ["wc","-c",NULL]             │────> NULL
 │ redir: NULL                │     │ redir: { REDIR_OUT → "file.txt" }   │
 └────────────────────────────┘     └─────────────────────────────────────┘
 ```
@@ -157,7 +157,7 @@ fork()
 │ (untouched forever)      dup2(3, stdout)       │
 │                          stdout → out.txt      │
 │ waits...                 echo prints "hey"     │
-│                          → goes to out.txt ✓   │
+│                          → goes to out.txt     │
 │ wait returns             exit(0)               │
 └────────────────────────────────────────────────┘
 ```
@@ -168,7 +168,7 @@ N commands need N-1 pipes. All children fork simultaneously and run in parallel.
 
 ```
 ls  |  grep .c  |  wc -l
-    ^            ^
+    ^           ^
  pipes[0]     pipes[1]
 ```
 
