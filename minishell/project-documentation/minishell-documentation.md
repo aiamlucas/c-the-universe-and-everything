@@ -89,6 +89,25 @@ end         → append cmd2 manually (no pipe triggered it)
 └────────────────────────────┘     └─────────────────────────────────────┘
 ```
 
+### Redirections
+ 
+A command can have multiple redirections chained in a linked list.
+The last one wins for the same fd, each call to dup2() (which rewires a file descriptor to point to a different file) overwrites the previous.
+
+**cat < in.txt > out.txt >> log.txt**
+ 
+redir list:
+`{ REDIR_IN  → "in.txt"  } → { REDIR_OUT    → "out.txt" } → { REDIR_APPEND → "log.txt" } → NULL`
+
+```
+iter 1: in.txt  opened → stdin  rewired to in.txt    ← stays (only stdin changed)
+iter 2: out.txt opened → stdout rewired to out.txt   ← stdout changed
+iter 3: log.txt opened → stdout rewired to log.txt   ← stdout changed again, 
+```
+final state:
+    stdin  → in.txt    
+    stdout → log.txt   (out.txt was overwritten by iter 3)
+
 ---
 
 ## 5. Execution
