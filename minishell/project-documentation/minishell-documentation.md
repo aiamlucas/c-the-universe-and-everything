@@ -64,10 +64,13 @@ after:   [cat] -> [<<] -> ['EOF'] -> NULL   ← ['EOF'] untouched
 
 ---
 
+
 ## 4. Parser
 
 Walks the token list once and builds a linked list of commands.
-Each command holds `argv` (NULL-terminated array of strings) and `redirections`.
+Each command holds:
+- `argv` NULL-terminated array of strings: the command and its arguments
+- `redirections` linked list of redirection pairs: operator + target word
 
 ```
 input:  echo hey | wc -c > file.txt
