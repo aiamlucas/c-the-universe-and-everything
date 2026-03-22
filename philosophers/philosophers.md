@@ -60,7 +60,7 @@ With 5 philosophers arranged in a circle:
 ### The Challenge
 
 - Philosophers **share chopsticks** (limited resources)
-- They **don't communicate** with each other
+- They **don't communicate** with each other (no messaging, no shared flags, etc)
 - They **must not starve** (die from not eating)
 - The system **must not deadlock**  (all threads stuck waiting for each other in a circle → nobody can proceed)
 
@@ -69,9 +69,20 @@ With 5 philosophers arranged in a circle:
 Think of it like multiple programs trying to access shared resources (files, memory, network connections). 
 If not coordinated properly, they can:
 
-- **Deadlock**: all waiting for each other
-- **Starve**: some processes never get resources
-- **Race**: corrupt data by simultaneous access
+- **Deadlock**: all waiting for each other → nobody ever moves
+  *(every philosopher holds one chopstick and waits for the other forever)*
+→ technically: every thread is blocked waiting for a resource held by another
+  thread in the same chain: since nobody releases, nobody can ever continue
+
+- **Starvation**: some processes never get resources → they die waiting
+  *(one philosopher always loses the race to grab chopsticks to faster neighbors)*
+→ technically: a thread keeps getting skipped, other threads always get the
+  resource first, so this thread waits forever despite never being truly blocked
+
+- **Race condition**: corrupt data by simultaneous access → wrong results
+  *(two philosophers both "see" a chopstick as free and grab it at the same time)*
+  → technically: two threads read and write the same data at the same time
+  without coordination. The result depends on who goes first, which is random/inconsistent
 
 ---
 
@@ -87,6 +98,29 @@ Before diving into processes and threads, it’s important to understand how the
 | **Core**             | An independent execution unit inside the CPU. Each core can execute its own thread of instructions.                                          |
 | **Hardware Thread**  | Also called a *logical core*. Some CPUs use Simultaneous Multithreading (SMT) or Hyper-Threading to run two threads per core simultaneously. |
 | **Software Thread**  | The thread you create in your program (e.g., using `pthread_create`). The operating system scheduler assigns these to hardware threads.      |
+
+```
+┌─────────────────────────────────────────┐
+│                  CPU                    │
+│  ┌─────────────┐   ┌─────────────┐      │
+│  │   Core 0    │   │   Core 1    │  ... │
+│  │ ┌───┐ ┌───┐ │   │ ┌───┐ ┌───┐ │      │
+│  │ │T 0│ │T 1│ │   │ │T 2│ │T 3│ │      │
+│  │ └───┘ └───┘ │   │ └───┘ └───┘ │      │
+│  │  (SMT: 2    │   │  (SMT: 2    │      │
+│  │  threads)   │   │  threads)   │      │
+│  └─────────────┘   └─────────────┘      │
+└─────────────────────────────────────────┘
+```
+
+CPU     → the physical chip on your motherboard
+Core    → independent brain inside the CPU, has its own
+          registers, execution units and L1/L2 cache.
+          Two cores never share work, they run truly in parallel.
+Thread  → the actual stream of instructions a core executes.
+          With SMT (hyper-threading), one core can juggle two
+          threads by filling idle execution slots.
+
 
 ### Example: Ryzen 7 CPU
 
