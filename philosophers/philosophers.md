@@ -60,7 +60,7 @@ With 5 philosophers arranged in a circle:
 ### The Challenge
 
 - Philosophers **share chopsticks** (limited resources)
-- They **don't communicate** with each other (no messaging, no shared flags, etc)
+- They **don't communicate** with each other (no messaging, etc)
 - They **must not starve** (die from not eating)
 - The system **must not deadlock**  (all threads stuck waiting for each other in a circle → nobody can proceed)
 
@@ -145,46 +145,7 @@ If you create more than 16 threads, the OS will time-slice them, giving each a s
    - **True parallelism** when enough cores exist  
    - **Concurrent execution** when threads share cores via time slicing
 
-### Threads and CPU Cores
-
-Each thread represents a sequence of instructions that the CPU can execute.  
-Modern CPUs have multiple cores and each core can run one or more threads at the same time (thanks to hyper-threading or SMT).
-
-| **Concept**           | **Explanation**                                                                                                        |
-|-----------------------|------------------------------------------------------------------------------------------------------------------------|
-| **Core**              | A physical processing unit inside the CPU. Each core can run one thread (or two with SMT).                             |
-| **Thread**            | A lightweight task that the OS scheduler assigns to a CPU core for execution.                                          |
-| **Parallelism**       | Multiple threads can run truly simultaneously if there are multiple cores available.                                   |
-| **Context Switching** | If there are more threads than cores, the OS quickly switches between them to give the illusion of parallelism.        |
-| **Performance Note**  | More threads ≠ always faster. Performance depends on how much real parallel work exists and synchronization overhead. |
-
-
-### Example
-
-```
-// Suppose you have a Ryzen 7 5800X (8 cores, 16 threads):
-CPU (Ryzen 7 5800X)
- ├─ Core 0  → Thread A
- ├─ Core 1  → Thread B
- ├─ Core 2  → Thread C
- ├─ Core 3  → Thread D
- ├─ Core 4  → Thread E
- ├─ Core 5  → Thread F
- ├─ Core 6  → Thread G
- └─ Core 7  → Thread H
-
-// Each core supports 2 hardware threads (SMT):
-→ Total = 8 cores × 2 = 16 hardware threads.
-```
-
-The Ryzen 7 5800X can run up to 16 threads truly in parallel.  
-If your program creates 200 threads, the operating system scheduler will rotate them among those 16 hardware threads, giving each a short time slice to execute.
-
-```
-// Example: Thread scheduling (conceptual)
-for (int i = 0; i < n_threads; i++)
-    pthread_create(...);  // Threads may run on different CPU cores (Ryzen 7 cores)
-```
+---
 
 ## 3) Processes vs Threads
 
@@ -203,23 +164,10 @@ Before diving into threads, it's important to understand the difference from pro
 - **Fast**: Creating 200 philosopher threads is much faster than 200 processes
 - **Simple communication**: No need for complex IPC
 
-```
-// Process model (NOT used in this project)
-for (int i = 0; i < n_philos; i++)
-    fork();  // Creates separate process, needs IPC
-
-// Thread model (what we use)
-for (int i = 0; i < n_philos; i++)
-    pthread_create(...);  // Creates thread, shares memory
-```
 
 ---
 
 ## 4) POSIX Threads (pthreads)
-
-### What is a Thread?
-A **thread** is a **separate flow of execution** within the same program.
-Think of it like having multiple workers in the same office (shared memory) doing different tasks simultaneously.
 
 ### Key Thread Functions
 
@@ -227,10 +175,10 @@ Think of it like having multiple workers in the same office (shared memory) doin
 Creates and starts a new thread.
 
 ```
-int pthread_create(pthread_t *thread,           // thread ID (output)
-                   const pthread_attr_t *attr,  // attributes (usually NULL)
+int pthread_create(pthread_t *thread,             // thread ID (output)
+                   const pthread_attr_t *attr,    // attributes (usually NULL)
                    void *(*start_routine)(void*), // function to run
-                   void *arg);                  // argument to pass
+                   void *arg);                    // argument to pass
 
 // Example:
 pthread_t philo_thread;
@@ -256,15 +204,6 @@ pthread_join(philo_thread, NULL);  // Wait for philosopher to finish
 - **Main thread must join** all philosopher threads before exiting
 - **Retval**: Can capture thread's return value (usually NULL for this project)
 
-#### `pthread_detach()`
-Marks thread as detached (resources auto-released on exit).
-
-```
-int pthread_detach(pthread_t thread);
-```
-
-- **Detached threads**: Cannot be joined, clean up automatically
-- **Use case**: If you don't care about thread's return value
 
 ### Thread Lifecycle
 
@@ -693,4 +632,174 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex);
 int gettimeofday(struct timeval *tv, struct timezone *tz);
 int usleep(useconds_t microseconds);
 ```
+
 ---
+
+
+# Representing the Problem in C
+
+Each philosopher becomes a **thread** (unit of execution), each fork becomes a **mutex** (lockable resource):
+
+
+```
+philosopher[1] ──── thread ──── runs independently
+philosopher[2] ──── thread ──── runs independently
+philosopher[3] ──── thread ──── runs independently
+
+fork[0] ──── mutex ──── only one thread can hold it at a time
+fork[1] ──── mutex ──── only one thread can hold it at a time
+fork[2] ──── mutex ──── only one thread can hold it at a time
+```
+
+Round table layout:
+```
+fork[0]-philo[1]-fork[1]-philo[2]-fork[2]-philo[3]-fork[3]-philo[4]-fork[4]-philo[5]-fork[0]
+                                                                                        ↑
+                                                                             wraps back (% n)
+```
+
+---
+
+### The Shared Data Structure
+
+All threads need access to the same forks, timings and stop flag.
+Instead of global variables (forbidden), one shared struct `t_data` is passed
+to every thread via a pointer:
+
+```
+          t_data (shared by all threads)
+         ┌─────────────────────────────────────┐
+         │ time_to_die   time_to_eat            │
+         │ time_to_sleep must_eat_count         │
+         │ start_time    dead_flag              │
+         │                                     │
+         │ forks → [mutex0][mutex1][mutex2]...  │
+         │                                     │
+         │ print_mutex   death_mutex            │
+         │                                     │
+         │ philos → [philo1][philo2][philo3]... │
+         └─────────────────────────────────────┘
+              ↑           ↑           ↑
+           thread1     thread2     thread3
+         (philo1)     (philo2)    (philo3)
+```
+
+Each philosopher struct holds its own state:
+```
+t_philo
+┌──────────────────────────────┐
+│ id            = 1            │
+│ left_fork     = 0            │  → index into data->forks[]
+│ right_fork    = 1            │  → index into data->forks[]
+│ last_meal_time               │  → updated every meal
+│ meals_eaten   = 0            │  → incremented each meal
+│ *data         ──────────────────→ points back to t_data
+└──────────────────────────────┘
+```
+
+---
+
+### Why Locking Is Necessary
+
+Threads run truly in parallel: two threads can read and write the
+same variable at the exact same moment.
+Without a mutex, the result is unpredictable. 
+
+This is called a data race:
+
+```
+WITHOUT MUTEX:
+
+thread1 reads  dead_flag → 0 (running)
+thread2 writes dead_flag → 1 (ended)
+thread1 still thinks simulation is running → data race!!!
+
+WITH MUTEX:
+
+thread1: lock → reads dead_flag → unlock
+thread2: lock → (blocked, waits) ────────→ lock → writes dead_flag → unlock
+thread1 always reads a consistent value
+```
+
+---
+
+### The Monitor
+
+A monitor is a dedicated watcher: a separate thread (the main thread)
+whose only job is to observe the simulation and decide when it ends.
+It never eats, thinks or sleeps, it just polls:
+
+```
+                    ┌─────────────────┐
+                    │  MONITOR        │
+                    │  (main thread)  │
+                    │                 │
+                    │  every 1ms:     │
+                    │  check each     │
+                    │  last_meal_time │
+                    └────────┬────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ↓              ↓              ↓
+         philo[1]        philo[2]       philo[3]
+         thread          thread          thread
+```
+
+Philosophers never check each other, only the monitor reads
+all philosophers and decides when simulation ends.
+
+---
+
+### Deadlock Prevention
+```
+WITHOUT ordering — deadlock:
+
+philo[1] grabs fork[0] → waits for fork[1]
+philo[2] grabs fork[1] → waits for fork[2]
+philo[3] grabs fork[2] → waits for fork[0]
+→ circular wait → nobody moves → deadlock!!!
+
+WITH ordering (always lock lower index first):
+
+philo[1]: lock fork[0] → lock fork[1]
+philo[2]: lock fork[1] → lock fork[2]
+philo[3]: lock fork[0] → lock fork[2]  (right < left → reversed)
+→ circle is broken → at least one philosopher always eats
+```
+
+---
+
+### Output Integrity
+
+printf is not thread-safe. Two threads printing at the same time
+produce interleaved output. 
+A dedicated mutex ensures only one thread can print at a time:
+
+```
+WITHOUT print_mutex:
+
+thread1: printf("42 1 is eati-             ← interrupted
+thread2:                    -ng\n47 2 is thinking\n")  ← interleaved
+
+WITH print_mutex:
+
+thread1: lock → printf("42 1 is eating\n")   → unlock
+thread2: lock → (blocked) ──────────────────→ printf("47 2 is thinking\n") → unlock
+one line at a time, always clean
+```
+
+---
+
+### ft_usleep_check — Why Not Just usleep?
+
+usleep sleeps the full duration no matter what happens. 
+Threads would keep sleeping even after simulation ends. 
+`ft_usleep_check` wakes up every 500µs to check if the simulation ended:
+
+```
+usleep(800ms):    ████████████████████████████████ sleeps full 800ms
+                  even if philosopher died at 10ms ❌
+
+ft_usleep_check:  █ check █ check █ check → dead_flag=1 → exit
+                  wakes every 500µs, exits as soon as simulation ends
+```
