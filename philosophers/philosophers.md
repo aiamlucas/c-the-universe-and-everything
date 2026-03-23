@@ -312,7 +312,7 @@ Threads would keep sleeping even after simulation ends.
 
 ```
 usleep(800ms):    ████████████████████████████████ sleeps full 800ms
-                  even if philosopher died at 10ms ❌
+                  even if philosopher died at 10ms
 
 ft_usleep_check:  █ check █ check █ check → dead_flag=1 → exit
                   wakes every 500µs, exits as soon as simulation ends
