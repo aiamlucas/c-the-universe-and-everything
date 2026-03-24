@@ -247,13 +247,123 @@ t_data
                                     └──────────────────────┘
 ```
 
-Cleanup order (reverse of init):
+---
+
+### Why *data inside each philosopher
+
+`pthread_create` only accepts ONE argument: `&philos[i]`.
+But each thread needs access to shared resources:
 ```
-1. pthread_mutex_destroy for each chopstick
+thread receives → &philos[i]
+                      │
+                      └── philos[i].data ──→ t_data
+                                                ├── chopsticks[]   (to eat)
+                                                ├── print_mutex    (to print)
+                                                ├── death_mutex    (to check state)
+                                                ├── time_to_die    (timing)
+                                                └── dead_flag      (stop signal)
+```
+
+Embedding `*data` inside `t_philo` solves this
+one pointer gives the thread access to everything it needs.
+
+---
+
+### Shared Resources
+```
+chopsticks[]       → the eating tools: philosophers compete to lock them
+                   one mutex per chopstick, only one philosopher holds it at a time
+
+print_mutex   → stdout: only one thread can printf at a time
+                without it: two threads print simultaneously → garbled output
+
+death_mutex   → simulation state: protects dead_flag, last_meal_time, meals_eaten
+                written by: philosopher threads (last_meal_time, meals_eaten)
+                            monitor (dead_flag)
+                read by:    philosopher threads (dead_flag)
+                            monitor (last_meal_time, meals_eaten)
+```
+
+---
+
+### Monitor, not a thread, runs in main
+
+```
+after create_threads() returns:
+
+main thread  →  monitor_simulation()   ← loops here watching for deaths
+thread[1]    →  philosopher_routine()  ← eat / think / sleep
+thread[2]    →  philosopher_routine()  ← eat / think / sleep
+thread[3]    →  philosopher_routine()  ← eat / think / sleep
+...
+
+monitor has no pthread_t — it IS the main thread
+no entry in t_data — it uses t_data directly via pointer
+```
+
+---
+
+### The Routine: philosopher_routine
+
+A routine is the function a thread executes. 
+Passed to `pthread_create` as a function pointer.
+When the thread starts, it calls this function.
+When the function returns, the thread exits.
+
+```
+pthread_create(&philos[i].thread, NULL, philosopher_routine, &philos[i])
+                                         ↑
+                                   function pointer
+                                   thread starts executing here
+```
+
+The routine signature is always the same for pthreads:
+```
+void *routine(void *arg)
+  ↑                ↑
+  returns void*    receives void* (cast to t_philo* inside)
+```
+
+philosopher_routine is the lifetime of one philosopher:
+```
+philosopher_routine(&philos[i])
+│
+├── if even id → usleep(1ms)    ← stagger start to prevent deadlock (minimal delay so they don't fight for the chopstick at the same time)
+│
+└── loop until simulation_ended():
+        │
+        ├── think  → print "is thinking"
+        │
+        ├── eat    → take chopsticks (lock 2 mutexes)
+        │            print "is eating"
+        │            update last_meal_time + meals_eaten
+        │            sleep time_to_eat
+        │            drop chopsticks (unlock 2 mutexes)
+        │
+        └── sleep  → print "is sleeping"
+                     sleep time_to_sleep
+```
+
+Each philosopher thread runs this loop independently and in parallel.
+They share chopsticks (mutexes) and check dead_flag to know when to stop
+but never communicate directly with each other.
+```
+thread[1]: think → eat → sleep → think → eat → ...
+thread[2]:    think → eat → sleep → think → eat → ...
+thread[3]:       think → eat → sleep → think → ...
+               ↑ all running at the same time, independently
+```
+
+---
+
+
+### Cleanup Order (reverse of init)
+```
+1. pthread_mutex_destroy for each chopstick    (n destroys)
 2. pthread_mutex_destroy print_mutex
 3. pthread_mutex_destroy death_mutex
-4. free(chopsticks)
-5. free(philos)
+4. free(chopsticks)                            (heap)
+5. free(philos)                                (heap)
 ```
 
 ---
