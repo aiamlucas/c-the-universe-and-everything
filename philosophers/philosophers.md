@@ -176,39 +176,84 @@ chopstick[0]-philo[1]-chopstick[1]-philo[2]-chopstick[2]-philo[3]-chopstick[3]-p
 
 ### The Shared Data Structure
 
-All threads need access to the same forks, timings and stop flag.
+All threads need access to the same chopsticks, timings and stop flag.
 Instead of global variables (forbidden), one shared struct `t_data` is passed
 to every thread via a pointer:
 
 ```
           t_data (shared by all threads)
-         ┌─────────────────────────────────────┐
-         │ time_to_die   time_to_eat            │
-         │ time_to_sleep must_eat_count         │
-         │ start_time    dead_flag              │
-         │                                     │
-         │ forks → [mutex0][mutex1][mutex2]...  │
-         │                                     │
-         │ print_mutex   death_mutex            │
-         │                                     │
-         │ philos → [philo1][philo2][philo3]... │
-         └─────────────────────────────────────┘
+         ┌────────────────────────────────────────────┐
+         │ time_to_die   time_to_eat                  │
+         │ time_to_sleep must_eat_count               │
+         │ start_time    dead_flag                    │
+         │                                            │
+         │ chopsticks → [mutex0][mutex1][mutex2]...   │
+         │                                            │
+         │ print_mutex   death_mutex                  │
+         │                                            │
+         │ philos → [philo1][philo2][philo3]...       │
+         └────────────────────────────────────────────┘
               ↑           ↑           ↑
            thread1     thread2     thread3
-         (philo1)     (philo2)    (philo3)
+           (philo1)     (philo2)    (philo3)
 ```
 
 Each philosopher struct holds its own state:
 ```
 t_philo
-┌──────────────────────────────┐
-│ id            = 1            │
-│ left_fork     = 0            │  → index into data->forks[]
-│ right_fork    = 1            │  → index into data->forks[]
-│ last_meal_time               │  → updated every meal
-│ meals_eaten   = 0            │  → incremented each meal
-│ *data         ──────────────────→ points back to t_data
-└──────────────────────────────┘
+┌───────────────────────────────────┐
+│ id                 = 1            │
+│ left_chopstick     = 0            │  → index into data->chopsticks[]
+│ right_chopstick    = 1            │  → index into data->chopsticks[]
+│ last_meal_time                    │  → updated every meal
+│ meals_eaten        = 0            │  → incremented each meal
+│ *data         ───────────────────────→ points back to t_data
+└───────────────────────────────────┘
+```
+
+---
+
+### Memory & Initialization
+
+Two heap allocations happen during init 
+everything else lives on the stack inside t_data:
+
+```
+STACK                          HEAP
+─────                          ────
+t_data                         
+┌──────────────────┐           
+│ n_philos = 5     │           
+│ time_to_die      │           
+│ dead_flag = 0    │           
+│                  │           
+│ *chopsticks ──────────────────→  [mutex0][mutex1][mutex2][mutex3][mutex4]
+│                  │                  40 bytes each (Linux x86_64)
+│ print_mutex      │           
+│ death_mutex      │           
+│                  │           
+│ *philos ─────────────────→  [t_philo][t_philo][t_philo][t_philo][t_philo]
+└──────────────────┘           id=1      id=2     id=3     id=4     id=5
+                                │
+                                └── each t_philo:
+                                    ┌──────────────────────┐
+                                    │ id                   │
+                                    │ pthread_t thread     │ ← thread ID stored here
+                                    │ left_chopstick       │ ← index into chopsticks[]
+                                    │ right_chopstick      │ ← index into chopsticks[]
+                                    │ last_meal_time       │
+                                    │ meals_eaten          │
+                                    │ *data ─────────────────→ points back to t_data
+                                    └──────────────────────┘
+```
+
+Cleanup order (reverse of init):
+```
+1. pthread_mutex_destroy for each chopstick
+2. pthread_mutex_destroy print_mutex
+3. pthread_mutex_destroy death_mutex
+4. free(chopsticks)
+5. free(philos)
 ```
 
 ---
