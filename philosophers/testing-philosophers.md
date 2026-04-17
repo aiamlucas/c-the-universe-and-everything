@@ -1,8 +1,8 @@
-# Philosophers
+# Philosophers — Testing Guide
 
 ## Overview
 
-The **Philosophers** project is an implementation of the classic **Dining Philosophers Problem**, which teaches:
+The **Philosophers** project is an implementation of the classic **Dining Philosophers Problem**, which is about:
 - Threading and processes
 - Mutexes and synchronization
 - Race conditions and deadlocks
@@ -23,171 +23,283 @@ The **Philosophers** project is an implementation of the classic **Dining Philos
 ./philo [number_of_philosophers] [time_to_die] [time_to_eat] [time_to_sleep] [number_of_times_each_must_eat]
 ```
 
-- **number_of_philosophers**: Number of philos and forks
-- **time_to_die** (ms): If a philo doesn't start eating within this time, they die
-- **time_to_eat** (ms): Time it takes to eat
-- **time_to_sleep** (ms): Time spent sleeping
-- **number_of_times_each_must_eat** (optional): Simulation stops when all have eaten this many times
-
 ### The Lifecycle
 
-1. Philosopher **thinks**
-2. Philosopher gets **hungry**, tries to pick up forks
-3. Philosopher **eats** (resets their death timer)
-4. Philosopher puts down forks
-5. Philosopher **sleeps**
-6. Repeat from step 1
+```
+1. think  → philosopher thinks (no forks needed)
+2. hungry → tries to pick up left and right fork
+3. eat    → holds both forks, resets death timer
+4. done   → puts down both forks
+5. sleep  → sleeps for time_to_sleep ms
+6. repeat from step 1
+```
+
+---
+
+## Compilation
+
+To test for data races with Helgrind, add `-g3` `-O0` to your compilation flags.
+
+```
+-g3   → adds full debug symbols
+        Helgrind shows exact file names and line numbers
+        without it: "at 0x4007A1: ???"
+        with it:    "at 0x4007A1: philosopher_routine (philosopher.c:31)"
+
+-O0   → disables compiler optimizations
+        without it: compiler reorders/inlines code
+                    Helgrind points to wrong lines
+        with it:    Helgrind points to exactly what you wrote
+```
 
 ---
 
 ## Test Cases
 
 ### Test 1: Basic Survival Test
+
 ```
-// [number_of_philosophers] [time_to_die] [time_to_eat] [time_to_sleep] [number_of_times_each_must_eat]
-./philo 5 800 200 200
+./philo 5 800 200 200 (Should survive)
 ```
 
-**Why test this:**
-- Standard case with 5 philosophers
-- `time_to_die (800ms)` > `time_to_eat (200ms)` + `time_to_sleep (200ms)`
-- Should run indefinitely without deaths
-- Tests basic synchronization
+**Why:**
+- `time_to_die (800ms)` > `time_to_eat (200ms)` + `time_to_sleep (200ms)` = 400ms
+
+**Expected output:**
+```
+0 1 is thinking
+0 3 is thinking
+...
+(runs indefinitely, no death message)
+```
 
 **What to check:**
-- No philosopher should die
-- All philosophers should eat regularly
-- No timestamps should be negative or out of order
+- No philosopher dies
+- All philosophers eat regularly
+- Timestamps increase monotonically (never go backwards)
+- No two status lines overlap/interleave
 
+---
 
-### Test 2: One Philosopher (Edge Case)
+### Test 2: One Philosopher (Should die)
+
 ```
-// [number_of_philosophers] [time_to_die] [time_to_eat] [time_to_sleep] [number_of_times_each_must_eat]
 ./philo 1 800 200 200
 ```
 
-**Why test this:**
-- Only ONE fork available
-- Philosopher cannot eat (needs 2 forks)
-- Should die after 800ms
+**Why:**
+- Only ONE fork available, philosopher can never eat (needs 2)
+- Must always die
 
-**What to check:**
-- Philosopher should die at exactly ~800ms
-- Should print "died" message
-
-
-### Test 3: Tight Timing - Should Survive
+**Expected output:**
 ```
-// [number_of_philosophers] [time_to_die] [time_to_eat] [time_to_sleep] [number_of_times_each_must_eat]
+0 1 has taken a fork
+800 1 died
+```
+
+---
+
+### Test 3: Tight Timing  (Should Survive)
+
+```
 ./philo 4 410 200 200
 ```
 
-**Why test this:**
-- Very tight timing: 410ms to die, 200ms eat + 200ms sleep = 400ms
+**Why:**
+- Very tight margin: `time_to_die=410ms`, cycle=`200+200=400ms`
 - Only 10ms margin for error
-- Tests precision of timing
+- Tests timing precision, a slow implementation will fail this
+
+**Expected output:**
+```
+(runs indefinitely, no death message)
+```
 
 **What to check:**
-- No philosopher should die
-- All should eat on time
-- Tests if implementation has efficient fork pickup
+- Common causes of failure: using raw `usleep` instead of checked sleep,
+  not updating `last_meal_time` immediately when eating starts
 
+---
 
-### Test 4: Impossible Timing - Should Die
+### Test 4: Impossible Timing  (Should die)
+
 ```
-// [number_of_philosophers] [time_to_die] [time_to_eat] [time_to_sleep] [number_of_times_each_must_eat]
 ./philo 4 310 200 200
 ```
 
-**Why test this:**
-- Impossible: 310ms to die, but eating + sleeping = 400ms
-- At least one philosopher MUST die
+**Why:**
+- Impossible: `time_to_die=310ms` but cycle=`200+200=400ms`
+- At least one philosopher MUST die, tests death detection
 
-**What to check:**
-- A philosopher should die
-- Death should be reported accurately
-
-
-### Test 5: Limited Meals
+**Expected output:**
 ```
-// [number_of_philosophers] [time_to_die] [time_to_eat] [time_to_sleep] [number_of_times_each_must_eat]
+...
+XXX N died
+```
+
+---
+
+### Test 5: Limited Meals  (Clean Stop after 7 meals)
+
+```
 ./philo 5 800 200 200 7
 ```
 
-**Why test this:**
-- Should stop when all philosophers eat 7 times
-- Tests the optional 5th parameter
-- Should NOT print "died"
+**Why:**
+- Tests the optional 5th argument
+- Simulation must stop when ALL philosophers have eaten 7 times
+- Must NOT print "died"
 
-**What to check:**
-- Simulation should end cleanly
-- Check that all philosophers ate 7 times
-- No death message
-
-
-### Test 6: Two Philosophers (Minimal Case)
+**Expected output:**
 ```
-// [number_of_philosophers] [time_to_die] [time_to_eat] [time_to_sleep] [number_of_times_each_must_eat]
+...
+(simulation stops cleanly, no death message)
+```
+---
+
+### Test 6: Two Philosophers (Should Survive)
+
+```
 ./philo 2 800 200 200
 ```
 
-**Why test this:**
-- Simplest case with multiple philosophers
-- Each has access to 2 forks alternately
-- Should work smoothly
+---
 
-**What to check:**
-- Both should eat alternately
-- No deaths
-- Clean synchronization
+### Test 7: Large Number of Philosophers (Should Survive)
 
-### Test 7: Large Number of Philosophers
 ```
-// [number_of_philosophers] [time_to_die] [time_to_eat] [time_to_sleep] [number_of_times_each_must_eat]
 ./philo 200 800 200 200
 ```
 
-**Why test this:**
-- Stress test with many threads (200 threads!)
-- Tests if your implementation scales
-- More chance of race conditions appearing
+**Why:**
+- Stress test, 200 threads running simultaneously
+- More threads = more chance of race conditions appearing
 
-**What to check:**
-- No philosopher should die
-- No data races
-- Performance should remain acceptable
+---
 
-### Test 8: Data Race Detection
+### Test 8: Death Timing Accuracy (Should Die whithin 10ms)
+
 ```
-valgrind --tool=helgrind ./philo 5 800 200 200
+./philo 4 310 200 100
 ```
 
-**Why test this:**
-- 800ms to die, 200+200=400ms cycle (comfortable timing so philosophers survive)
+**Why:**
+- Tests if death is reported within 10ms (subject requirement)
+- `time_to_die=310ms` is impossible to survive
 
 **What to check:**
-- Look for "Possible data race" in Helgrind output
-- Check for "Lock order" violations (potential deadlock)
-- Should show `ERROR SUMMARY: 0 errors from 0 contexts` if clean
+```
+death reported at Xms
+last meal was at Yms
+X - Y must be <= time_to_die + 10ms  (subject allows 10ms tolerance)
+```
+
+---
+
+### Test 9: Input Validation
+
+```
+# wrong number of arguments
+./philo
+./philo 5
+./philo 5 800 200
+
+# negative values
+./philo -1 800 200 200
+./philo 5 -800 200 200
+
+# zero values
+./philo 0 800 200 200
+./philo 5 0 200 200
+
+# overflow
+./philo 2147483648 800 200 200
+./philo 5 999999999999999999999 200 200
+
+# non-numeric
+./philo abc 800 200 200
+./philo 5 800 200 abc
+
+# signs
+./philo +5 800 200 200
+./philo 5 +800 200 200
+```
+
+**What to check:**
+- All invalid inputs print a clear error message
+- Program exits with failure (non-zero exit code)
+- No crash, no undefined behavior
+
+---
+
+### Test 10: Data Race Detection with Helgrind
+
+```
+# compile with debug flags first
+make HELGRIND=1
+
+# run helgrind
+valgrind --tool=helgrind ./philo 5 800 200 200 20
+```
+
+**What to look for:**
+
+The only line that matters:
+```
+ERROR SUMMARY: 0 errors from 0 contexts (suppressed: X from Y)
+```
+
+```
+0 errors   → clean
+X errors   → data races or lock order violations
+suppressed → internal glibc/pthread noise — always ignore
+```
 
 **Example of clean output:**
 ```
-==12345== ERROR SUMMARY: 0 errors from 0 contexts
+==12345== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 86457 from 124)
 ```
 
 **Example of data race found:**
 ```
 ==12345== Possible data race during write of size 4
-==12345==    at 0x401234: philosopher_routine (philo.c:42)
+==12345==    at 0x401234: philosopher_routine (philosopher.c:42)
 ==12345==  This conflicts with a previous read of size 4
-==12345==    at 0x401198: check_death (philo.c:67)
+==12345==    at 0x401198: check_phil_death (monitor.c:67)
 ```
 
-> Saving the output to file for easier analysis:
+**Example of lock order violation:**
 ```
-valgrind --tool=helgrind --log-file=helgrind.log ./philo 5 800 200 200
-grep "Possible data race" helgrind.log
+==12345== Thread #2: lock order "death_mutex before print_mutex" violated
+==12345==    Holding death_mutex
+==12345==    Trying to acquire print_mutex
+==12345==    But thread #1 previously acquired them in reverse order
+```
+
+Lock order violation means: mutexes are locked in different orders in
+different places, this will eventually cause a deadlock even if the
+program seems to work fine during testing.
+
+**Save output to file for easier analysis:**
+```
+valgrind --tool=helgrind --log-file=helgrind.log ./philo 5 800 200 200 5
+
+# search for specific issues:
+grep "data race" helgrind.log
+grep "lock order" helgrind.log
+grep "ERROR SUMMARY" helgrind.log
 ```
 
 ---
 
+### Test 11: Helgrind with multiple scenarios
+
+```
+# test with must_eat_count (clean stop)
+valgrind --tool=helgrind ./philo 5 800 200 200 5
+
+# test with death
+valgrind --tool=helgrind ./philo 2 500 300 300
+```
+
+All should show `ERROR SUMMARY: 0 errors`.
