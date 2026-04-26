@@ -3,10 +3,17 @@
 A first-person ~3D engine written in C, built from scratch.
 The world is a 2D grid. The 3D effect comes entirely from raycasting
 casting one ray per screen column to find walls, then drawing vertical
-strips scaled by distance. No OpenGL, no game engine, no 3D math.
+strips scaled by distance. No OpenGL, no game engine!
 
 This document focuses on the architecture and rendering pipeline.
 Parsing the `.cub` map file is not covered here.
+
+## Core techniques
+
+- **Raycasting** — one ray per screen column, DDA algorithm for wall detection
+- **Direct memory rendering** — pixels written directly into a flat buffer, one flush per frame
+- **Texture mapping** — XPM wall textures sampled per pixel with perspective correction
+- **Minimap** — top-down overlay reusing the same DDA as the 3D render
 
 ---
 
