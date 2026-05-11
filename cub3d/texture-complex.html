@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cub3D — tex_y Visualizer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#090c12;--bg2:#0f1520;--bg3:#16202e;--border:#1e2d40;
+  --teal:#00e5c0;--purple:#8b7ff7;--amber:#f0a500;--red:#ff4d6d;--green:#39e06a;
+  --text:#d4dde8;--muted:#4a6070;--mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.5;padding:24px 20px;max-width:1100px;margin:0 auto}
+h1{font-size:11px;font-weight:700;color:var(--teal);letter-spacing:.12em;text-transform:uppercase;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+.layout{display:grid;grid-template-columns:220px 1fr 1fr;gap:16px;align-items:start}
+
+/* CONTROLS */
+.controls{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px}
+.ctrl-title{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.ctrl-row{margin-bottom:14px}
+.ctrl-label{font-size:10px;color:var(--muted);margin-bottom:4px;display:flex;justify-content:space-between}
+.ctrl-label span{color:var(--text);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--teal);height:3px;margin:2px 0}
+.derived{margin-top:12px;padding:10px;background:var(--bg3);border-radius:6px;font-size:10px;line-height:2;border-left:2px solid var(--border)}
+.derived .k{color:var(--muted)}
+.derived .v{color:var(--amber)}
+.derived .hi{color:var(--teal)}
+
+/* SCREEN PANEL */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.panel-title{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.panel-title.teal{color:var(--teal)}
+.panel-title.purple{color:var(--purple)}
+.panel-title.amber{color:var(--amber)}
+
+canvas{display:block;border-radius:4px;border:1px solid var(--border)}
+
+/* MEM TABLE */
+.mem-table{width:100%;border-collapse:collapse;font-size:9px;margin-top:8px}
+.mem-table th{text-align:left;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--border);font-size:8px;letter-spacing:.05em;text-transform:uppercase}
+.mem-table td{padding:4px 6px;border-bottom:1px solid rgba(30,45,64,.5);font-family:var(--mono)}
+.mem-table tr:last-child td{border-bottom:none}
+.mem-table td:first-child{color:var(--muted)}
+.mem-table .wrap{color:var(--red);font-weight:700}
+.mem-table .normal{color:var(--green)}
+.mem-table .active{background:rgba(0,229,192,.06)}
+
+/* STATUS BAR */
+.status{margin-top:12px;padding:8px 12px;background:var(--bg3);border-radius:6px;font-size:10px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.status span{white-space:nowrap}
+.status .hi{color:var(--teal)}
+.status .warn{color:var(--amber)}
+.status .err{color:var(--red)}
+
+.badge{display:inline-block;padding:1px 7px;border-radius:4px;font-size:9px;font-weight:700;margin-left:4px}
+.badge.wrap{background:rgba(255,77,109,.15);color:var(--red);border:1px solid rgba(255,77,109,.3)}
+.badge.ok{background:rgba(57,224,106,.1);color:var(--green);border:1px solid rgba(57,224,106,.25)}
+</style>
+</head>
+<body>
+<h1>tex_y visualizer — text_pos, tex_y, bitmask &amp; tiling</h1>
+
+<div class="layout">
+
+<!-- CONTROLS -->
+<div class="controls">
+  <div class="ctrl-title">parameters</div>
+
+  <div class="ctrl-row">
+    <div class="ctrl-label">line_height <span id="lh-val">320</span></div>
+    <input type="range" id="lh" min="16" max="3000" value="320" step="4">
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-label">tex_x (column) <span id="tx-val">47</span></div>
+    <input type="range" id="tx" min="0" max="63" value="47">
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-label">tex_height <span id="th-val">64</span></div>
+    <input type="range" id="th" min="16" max="64" value="64" step="16">
+  </div>
+
+  <div class="derived" id="derived">
+    <div><span class="k">step         </span><span class="v" id="d-step"></span></div>
+    <div><span class="k">draw_start   </span><span class="v" id="d-ds"></span></div>
+    <div><span class="k">draw_end     </span><span class="v" id="d-de"></span></div>
+    <div><span class="k">tex_row_offset</span><span class="v" id="d-off"></span></div>
+    <div><span class="k">text_pos start</span><span class="hi" id="d-tp"></span></div>
+    <div><span class="k">tiles        </span><span class="hi" id="d-tiles"></span></div>
+  </div>
+</div>
+
+<!-- SCREEN + TEXTURE -->
+<div class="panel">
+  <div class="panel-title teal">screen strip &amp; texture column</div>
+  <canvas id="main-canvas" width="380" height="440"></canvas>
+  <div class="status" id="status-bar"></div>
+</div>
+
+<!-- MEMORY VIEW -->
+<div class="panel">
+  <div class="panel-title purple">memory — text_pos &amp; tex_y per screen pixel</div>
+  <canvas id="mem-canvas" width="340" height="200"></canvas>
+  <table class="mem-table" id="mem-table">
+    <thead><tr><th>screen y</th><th>text_pos</th><th>tex_y</th><th>& mask</th><th>status</th></tr></thead>
+    <tbody id="mem-body"></tbody>
+  </table>
+</div>
+
+</div>
+
+<script>
+const WIN_H = 1080;
+const lhEl = document.getElementById('lh');
+const txEl = document.getElementById('tx');
+const thEl = document.getElementById('th');
+
+function getParams() {
+  const lh = +lhEl.value;
+  const texX = +txEl.value;
+  const texH = +thEl.value;
+  const center = WIN_H / 2;
+  const drawStart = Math.max(0, center - lh/2);
+  const drawEnd   = Math.min(WIN_H-1, center + lh/2);
+  const step = texH / lh;
+  const distFromCenter = drawStart - center;
+  const halfWall = lh / 2;
+  const texRowOffset = distFromCenter + halfWall;
+  const textPosStart = texRowOffset * step;
+  const stripH = drawEnd - drawStart;
+  const tiles = (textPosStart + stripH * step) / texH;
+  return {lh, texX, texH, center, drawStart, drawEnd, step, texRowOffset, textPosStart, stripH, tiles};
+}
+
+// Generate fake west-like texture
+function makeTexture(texH) {
+  const tex = [];
+  for (let row = 0; row < texH; row++) {
+    const rowData = [];
+    for (let col = 0; col < 64; col++) {
+      // mimic the west texture pattern
+      if (row >= texH - 5) {
+        rowData.push([255, 0, 255]); // magenta bottom rows
+      } else if (row === 31) {
+        rowData.push([5, 6, 11]); // dark separator
+      } else {
+        // border columns
+        const isBorder = col <= 8 || col >= 55;
+        const isMidLeft = col >= 9 && col <= 12;
+        const isMidRight = col >= 51 && col <= 54;
+        if (isBorder) {
+          const v = 2 + Math.sin(row*0.3+col)*0.5;
+          rowData.push([Math.floor(v*2), Math.floor(v*4), Math.floor(v*12)]);
+        } else if (isMidLeft || isMidRight) {
+          rowData.push([1,4,8]);
+        } else {
+          // dots pattern
+          const dot = (row + col) % 7 === 0 || (row * col) % 13 === 0;
+          const base = dot ? 8 : 2;
+          rowData.push([0, base, Math.floor(base*4)]);
+        }
+      }
+    }
+    tex.push(rowData);
+  }
+  return tex;
+}
+
+function drawMain(p, tex) {
+  const c = document.getElementById('main-canvas');
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0,0,W,H);
+
+  const screenW = 80;
+  const texW = 80;
+  const gap = 30;
+  const screenX = 20;
+  const texX0 = screenX + screenW + gap + 40;
+
+  // scale screen height to canvas
+  const scale = H / WIN_H;
+
+  // --- SCREEN STRIP ---
+  // ceiling
+  ctx.fillStyle = '#0d1824';
+  ctx.fillRect(screenX, 0, screenW, p.drawStart * scale);
+
+  // wall strip — draw actual texture column
+  for (let sy = Math.floor(p.drawStart); sy <= Math.floor(p.drawEnd); sy++) {
+    const textPos = p.textPosStart + (sy - p.drawStart) * p.step;
+    const texY = Math.floor(textPos) & (p.texH - 1);
+    const [r,g,b] = tex[texY][p.texX];
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(screenX, sy * scale, screenW, Math.max(1, scale));
+  }
+
+  // floor
+  ctx.fillStyle = '#070b10';
+  ctx.fillRect(screenX, p.drawEnd * scale, screenW, H - p.drawEnd * scale);
+
+  // screen border
+  ctx.strokeStyle = '#1e2d40';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(screenX, 0, screenW, H);
+
+  // horizon line
+  ctx.strokeStyle = 'rgba(0,229,192,0.2)';
+  ctx.setLineDash([3,3]);
+  ctx.beginPath();
+  ctx.moveTo(screenX, p.center * scale);
+  ctx.lineTo(screenX + screenW, p.center * scale);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // draw_start / draw_end labels
+  ctx.fillStyle = 'rgba(0,229,192,0.8)';
+  ctx.font = '9px JetBrains Mono';
+  ctx.fillText('draw_start=' + Math.floor(p.drawStart), screenX + screenW + 4, p.drawStart * scale + 4);
+  ctx.fillText('draw_end=' + Math.floor(p.drawEnd),     screenX + screenW + 4, p.drawEnd * scale + 4);
+  ctx.fillText('horizon=' + p.center,                    screenX + screenW + 4, p.center * scale + 4);
+
+  // clamped indicator
+  if (p.drawStart === 0 && p.lh/2 > p.center) {
+    ctx.fillStyle = 'rgba(255,77,109,0.7)';
+    ctx.fillText('CLAMPED', screenX + 4, 14);
+  }
+
+  // screen label
+  ctx.fillStyle = '#4a6070';
+  ctx.font = '9px JetBrains Mono';
+  ctx.fillText('screen', screenX + screenW/2 - 16, H - 4);
+
+  // --- TEXTURE COLUMN ---
+  const texColW = texW;
+  const texRowH = H / p.texH;
+
+  for (let row = 0; row < p.texH; row++) {
+    const [r,g,b] = tex[row][p.texX];
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(texX0, row * texRowH, texColW, texRowH);
+  }
+
+  // texture border
+  ctx.strokeStyle = '#1e2d40';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(texX0, 0, texColW, H);
+
+  // text_pos start marker on texture
+  const tpRow = Math.floor(p.textPosStart) & (p.texH - 1);
+  ctx.strokeStyle = 'rgba(0,229,192,0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(texX0 - 2, tpRow * texRowH);
+  ctx.lineTo(texX0 + texColW + 2, tpRow * texRowH);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(0,229,192,0.9)';
+  ctx.fillText('text_pos start → row ' + tpRow, texX0 + texColW + 4, tpRow * texRowH + 4);
+
+  // wrap markers
+  let tp = p.textPosStart;
+  let firstWrap = true;
+  for (let sy = Math.floor(p.drawStart); sy <= Math.floor(p.drawEnd); sy++) {
+    const prev = Math.floor(tp) & (p.texH-1);
+    tp += p.step;
+    const curr = Math.floor(tp) & (p.texH-1);
+    if (curr < prev && firstWrap) {
+      ctx.strokeStyle = 'rgba(255,77,109,0.7)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2,2]);
+      ctx.beginPath();
+      ctx.moveTo(texX0-2, 0);
+      ctx.lineTo(texX0+texColW+2, 0);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,77,109,0.7)';
+      ctx.fillText('↩ wrap', texX0 + texColW + 4, 10);
+      firstWrap = false;
+    }
+  }
+
+  // tex_x label
+  ctx.fillStyle = '#4a6070';
+  ctx.fillText('tex_x=' + p.texX, texX0 + texColW/2 - 20, H - 4);
+
+  // connection line from screen to texture
+  ctx.strokeStyle = 'rgba(0,229,192,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(screenX + screenW, p.drawStart * scale);
+  ctx.lineTo(texX0, tpRow * texRowH);
+  ctx.stroke();
+}
+
+function drawMemGraph(p) {
+  const c = document.getElementById('mem-canvas');
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0,0,W,H);
+
+  const samples = 200;
+  const stripH = p.drawEnd - p.drawStart;
+
+  // axes
+  ctx.strokeStyle = '#1e2d40';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(40, 10); ctx.lineTo(40, H-20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(40, H-20); ctx.lineTo(W-10, H-20); ctx.stroke();
+
+  // axis labels
+  ctx.fillStyle = '#4a6070';
+  ctx.font = '8px JetBrains Mono';
+  ctx.fillText('text_pos / tex_y', 42, 16);
+  ctx.fillText('screen y →', W-70, H-6);
+  ctx.fillText('0', 28, H-18);
+  ctx.fillText(p.texH, 24, 14);
+
+  // text_pos line (linear, amber)
+  ctx.strokeStyle = 'rgba(240,165,0,0.7)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i <= samples; i++) {
+    const sy = p.drawStart + (i/samples) * stripH;
+    const tp = p.textPosStart + (sy - p.drawStart) * p.step;
+    const px = 40 + (i/samples) * (W-52);
+    const py = H-20 - (tp % (p.texH * 3)) / (p.texH * 3) * (H-32);
+    if (i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // tex_y line (sawtooth, teal)
+  ctx.strokeStyle = 'rgba(0,229,192,0.8)';
+  ctx.lineWidth = 1.5;
+  let prevTexY = -1;
+  ctx.beginPath();
+  for (let i = 0; i <= samples; i++) {
+    const sy = p.drawStart + (i/samples) * stripH;
+    const tp = p.textPosStart + (sy - p.drawStart) * p.step;
+    const texY = Math.floor(tp) & (p.texH - 1);
+    const px = 40 + (i/samples) * (W-52);
+    const py = H-20 - (texY / p.texH) * (H-32);
+    if (i===0 || texY < prevTexY) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+    prevTexY = texY;
+  }
+  ctx.stroke();
+
+  // legend
+  ctx.fillStyle = 'rgba(240,165,0,0.8)';
+  ctx.fillText('── text_pos (grows)', 44, H-6);
+  ctx.fillStyle = 'rgba(0,229,192,0.8)';
+  ctx.fillText('── tex_y (wraps)', 170, H-6);
+}
+
+function updateMemTable(p) {
+  const tbody = document.getElementById('mem-body');
+  tbody.innerHTML = '';
+  const rows = [];
+  let tp = p.textPosStart;
+  let prevTexY = Math.floor(tp) & (p.texH-1);
+
+  for (let sy = Math.floor(p.drawStart); sy <= Math.floor(p.drawEnd) && rows.length < 20; sy++) {
+    const texY = Math.floor(tp) & (p.texH-1);
+    const wrapped = texY < prevTexY;
+    rows.push({sy, tp: tp.toFixed(2), texY, wrapped});
+    prevTexY = texY;
+    tp += p.step;
+  }
+
+  for (const r of rows) {
+    const tr = document.createElement('tr');
+    if (r.wrapped) tr.className = 'active';
+    tr.innerHTML = `
+      <td>${r.sy}</td>
+      <td>${r.tp}</td>
+      <td class="${r.wrapped ? 'wrap' : 'normal'}">${r.texY}</td>
+      <td style="color:#4a6070">&amp; ${p.texH-1}</td>
+      <td>${r.wrapped ? '<span class="badge wrap">wrap</span>' : '<span class="badge ok">ok</span>'}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  if (Math.floor(p.drawEnd) - Math.floor(p.drawStart) > 20) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="5" style="color:#4a6070;text-align:center">... ${Math.floor(p.drawEnd - p.drawStart) - 20} more rows</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function updateDerived(p) {
+  document.getElementById('lh-val').textContent = p.lh;
+  document.getElementById('tx-val').textContent = p.texX;
+  document.getElementById('th-val').textContent = p.texH;
+  document.getElementById('d-step').textContent = p.step.toFixed(4);
+  document.getElementById('d-ds').textContent = Math.floor(p.drawStart) + (p.lh/2 > p.center ? ' (clamped)' : '');
+  document.getElementById('d-de').textContent = Math.floor(p.drawEnd) + (p.lh/2 > WIN_H - p.center ? ' (clamped)' : '');
+  document.getElementById('d-off').textContent = p.texRowOffset.toFixed(2);
+  document.getElementById('d-tp').textContent = p.textPosStart.toFixed(2);
+  document.getElementById('d-tiles').textContent = p.tiles.toFixed(2) + 'x' + (p.tiles > 1 ? ' ← wraps!' : '');
+
+  const status = document.getElementById('status-bar');
+  const clamped = p.lh/2 > p.center;
+  const wraps = p.tiles > 1;
+  status.innerHTML = `
+    <span>line_height: <span class="${p.lh > WIN_H ? 'err' : 'hi'}">${p.lh}</span></span>
+    <span>step: <span class="hi">${p.step.toFixed(3)}</span></span>
+    <span>strip height: <span class="hi">${Math.floor(p.drawEnd - p.drawStart)}px</span></span>
+    <span>draw_start clamped: <span class="${clamped ? 'warn' : 'hi'}">${clamped ? 'YES' : 'no'}</span></span>
+    <span>texture tiles: <span class="${wraps ? 'warn' : 'hi'}">${wraps ? p.tiles.toFixed(1) + 'x' : 'no'}</span></span>
+  `;
+}
+
+function render() {
+  const p = getParams();
+  const tex = makeTexture(p.texH);
+  drawMain(p, tex);
+  drawMemGraph(p);
+  updateMemTable(p);
+  updateDerived(p);
+}
+
+[lhEl, txEl, thEl].forEach(el => el.addEventListener('input', render));
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cub3D — Screen Rays Visualization</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0f1117;
+    --bg2:     #161b24;
+    --bg3:     #1d2535;
+    --border:  #2a3347;
+    --green:   #00ff88;
+    --purple:  #7c6ff7;
+    --amber:   #f5a623;
+    --teal:    #1de9b6;
+    --red:     #ff5f6d;
+    --text:    #e2e8f0;
+    --muted:   #64748b;
+    --mono:    'JetBrains Mono', monospace;
+    --sans:    'Inter', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 28px 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--green);
+  }
+
+  /* SCREEN CANVAS */
+  #screen-canvas {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #080c14;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    display: block;
+    cursor: crosshair;
+  }
+
+  .controls {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .control-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    min-width: 120px;
+  }
+
+  .control-val {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  input[type=range] {
+    flex: 1;
+    accent-color: var(--green);
+    height: 4px;
+  }
+
+  .toggle-btn {
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .toggle-btn.active {
+    background: rgba(0,255,136,0.12);
+    border-color: rgba(0,255,136,0.4);
+    color: var(--green);
+  }
+
+  /* INFO PANEL */
+  .formula {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: var(--bg3);
+    padding: 10px 12px;
+    border-radius: 6px;
+    border-left: 2px solid var(--border);
+    margin-bottom: 12px;
+    line-height: 2;
+    color: var(--muted);
+  }
+
+  .formula .hi  { color: var(--green); }
+  .formula .hi2 { color: var(--amber); }
+  .formula .hi3 { color: var(--purple); }
+
+  .step-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .step-list li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--green);
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.2);
+    border-radius: 4px;
+    padding: 1px 6px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .ray-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 10px;
+    margin-top: 12px;
+  }
+
+  .ray-table th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .ray-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid rgba(42,51,71,0.4);
+    color: var(--text);
+  }
+
+  .ray-table tr:last-child td { border-bottom: none; }
+  .ray-table td:first-child { color: var(--muted); }
+
+  .tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+  }
+
+  .tag.green  { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid rgba(0,255,136,0.25); }
+  .tag.amber  { background: rgba(245,166,35,0.12); color: var(--amber); border: 1px solid rgba(245,166,35,0.25); }
+  .tag.purple { background: rgba(124,111,247,0.12); color: var(--purple); border: 1px solid rgba(124,111,247,0.25); }
+
+  .full { grid-column: 1 / -1; }
+
+  .code-block {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    line-height: 2;
+    color: var(--muted);
+    margin-top: 20px;
+  }
+
+  .code-block .kw  { color: #7c6ff7; }
+  .code-block .fn  { color: var(--teal); }
+  .code-block .val { color: var(--amber); }
+  .code-block .cm  { color: #3a4a62; }
+  .code-block .var { color: var(--green); }
+</style>
+</head>
+<body>
+
+<h1>draw_screen_rays — screen ray visualization</h1>
+
+<div class="layout">
+
+  <!-- LEFT: CANVAS -->
+  <div class="panel">
+    <div class="panel-title">live preview</div>
+    <canvas id="screen-canvas"></canvas>
+    <div class="controls">
+      <div class="control-row">
+        <span class="control-label">SCREEN_RAYS</span>
+        <input type="range" id="rays-slider" min="3" max="80" value="20">
+        <span class="control-val" id="rays-val">20</span>
+      </div>
+      <div class="control-row">
+        <span class="control-label">player angle</span>
+        <input type="range" id="angle-slider" min="0" max="628" value="0">
+        <span class="control-val" id="angle-val">0°</span>
+      </div>
+      <div class="control-row">
+        <span class="control-label">FOV_FACTOR</span>
+        <input type="range" id="fov-slider" min="10" max="100" value="66">
+        <span class="control-val" id="fov-val">0.66</span>
+      </div>
+      <div class="control-row" style="gap:8px">
+        <button class="toggle-btn active" id="btn-rays">rays on</button>
+        <button class="toggle-btn active" id="btn-3d">3D walls</button>
+        <button class="toggle-btn" id="btn-origin">show origin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: EXPLANATION -->
+  <div class="panel">
+    <div class="panel-title">how it works</div>
+
+    <ul class="step-list">
+      <li><span class="step-num">1</span><span>Loop <code>i = 0..SCREEN_RAYS</code>. Map each ray to <code>camera_x ∈ [-1, +1]</code> — same formula as draw_3d.</span></li>
+      <li><span class="step-num">2</span><span>Compute <code>ray_dir = dir + cplane × camera_x</code>. Cast with DDA — same <code>init_ray</code> + <code>step_ray</code> as 3D render.</span></li>
+      <li><span class="step-num">3</span><span>After DDA: <code>perp_dist = ray_dist - delta_dist</code> — exact distance to wall face.<br>Then: <code>ray_screen_y = WIN_HEIGHT/2 - (WIN_HEIGHT/perp_dist)/2</code> — top of the wall strip.</span></li>
+      <li><span class="step-num">4</span><span>Draw green line from <code>(WIN_WIDTH/2, WIN_HEIGHT-1)</code> to <code>(col_x, ray_screen_y)</code>. All lines fan from the same origin.</span></li>
+    </ul>
+
+    <div class="formula">
+      <span class="hi">camera_x</span> = 2.0 × i / (SCREEN_RAYS-1) - 1.0<br>
+      <span class="hi2">col_x</span>    = i × WIN_WIDTH / (SCREEN_RAYS-1)<br>
+      <span class="hi3">ray_screen_y</span> = WIN_HEIGHT/2 - (WIN_HEIGHT/perp_dist)/2
+    </div>
+
+    <table class="ray-table">
+      <thead>
+        <tr><th>i</th><th>camera_x</th><th>col_x</th><th>side</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>0</td><td>-1.0</td><td>0</td><td><span class="tag purple">left edge</span></td></tr>
+        <tr><td>SCREEN_RAYS/2</td><td>0.0</td><td>WIN_WIDTH/2</td><td><span class="tag green">center</span></td></tr>
+        <tr><td>SCREEN_RAYS-1</td><td>+1.0</td><td>WIN_WIDTH</td><td><span class="tag amber">right edge</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- BOTTOM: VARIABLES -->
+  <div class="full code-block">
+<span class="cm">// variables</span>
+<span class="var">i</span>            <span class="cm">// ray index 0..SCREEN_RAYS — loop counter</span>
+<span class="var">camera_x</span>     <span class="cm">// scalar [-1, +1] — how far from center this ray is</span>
+<span class="var">ray_dir_x/y</span>  <span class="cm">// vector — direction of this ray (dir + cplane × camera_x)</span>
+<span class="var">col_x</span>        <span class="cm">// screen column for this ray (0..WIN_WIDTH, mapped from i)</span>
+<span class="var">perp_dist</span>    <span class="cm">// distance from player to wall face (ray_dist - delta_dist)</span>
+<span class="var">ray_screen_y</span> <span class="cm">// top of the wall strip on screen (draw_start)</span>
+<span class="var">line.x_player / y_player</span>  <span class="cm">// origin — fixed at (WIN_WIDTH/2, WIN_HEIGHT-1)</span>
+<span class="var">line.x_wall / y_wall</span>      <span class="cm">// target — (col_x, ray_screen_y)</span>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById('screen-canvas');
+const ctx = canvas.getContext('2d');
+
+let numRays = 20;
+let angle = 0;
+let fovFactor = 0.66;
+let showRays = true;
+let show3D = true;
+let showOrigin = false;
+
+// Fake world: a simple rectangular room
+const walls = [
+  // format: x1,y1,x2,y2 in world units
+  {x1:-5, y1:-4, x2:5,  y2:-4},  // north
+  {x1:5,  y1:-4, x2:5,  y2:4 },  // east
+  {x1:-5, y1:4,  x2:5,  y2:4 },  // south
+  {x1:-5, y1:-4, x2:-5, y2:4 },  // west
+  {x1:-2, y1:-4, x2:-2, y2:0 },  // pillar 1
+  {x1:2,  y1:0,  x2:2,  y2:4 },  // pillar 2
+];
+
+function castRay(ox, oy, dx, dy) {
+  let minT = Infinity;
+  for (const w of walls) {
+    const ex = w.x2 - w.x1, ey = w.y2 - w.y1;
+    const denom = dx * ey - dy * ex;
+    if (Math.abs(denom) < 1e-9) continue;
+    const tx = ((w.x1 - ox) * ey - (w.y1 - oy) * ex) / denom;
+    const ty = ((w.x1 - ox) * dy - (w.y1 - oy) * dx) / denom;
+    if (tx > 0.001 && ty >= 0 && ty <= 1 && tx < minT) minT = tx;
+  }
+  return minT === Infinity ? 20 : minT;
+}
+
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#080c14';
+  ctx.fillRect(0, 0, W, H);
+
+  const dirX = Math.cos(angle);
+  const dirY = Math.sin(angle);
+  const cpX = -Math.sin(angle) * fovFactor;
+  const cpY =  Math.cos(angle) * fovFactor;
+
+  const ox = 0, oy = 0; // player at origin
+
+  // Draw 3D walls
+  if (show3D) {
+    const cols = W;
+    for (let x = 0; x < cols; x++) {
+      const camX = 2.0 * x / (cols - 1) - 1.0;
+      const rdx = dirX + cpX * camX;
+      const rdy = dirY + cpY * camX;
+      const dist = castRay(ox, oy, rdx, rdy);
+      const perpDist = dist * Math.cos(Math.atan2(rdy, rdx) - angle);
+      const lineH = Math.min(H, (H / Math.max(perpDist, 0.01)));
+      const drawStart = Math.max(0, (H - lineH) / 2);
+      const drawEnd = Math.min(H, (H + lineH) / 2);
+
+      // ceiling
+      const grad = ctx.createLinearGradient(0, 0, 0, drawStart);
+      grad.addColorStop(0, '#1a2035');
+      grad.addColorStop(1, '#0f1520');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, 0, 1, drawStart);
+
+      // wall — shade by distance
+      const brightness = Math.min(255, Math.floor(200 / Math.max(perpDist, 0.5)));
+      const r = Math.floor(brightness * 0.3);
+      const g = Math.floor(brightness * 0.4);
+      const b = Math.floor(brightness * 0.8);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x, drawStart, 1, drawEnd - drawStart);
+
+      // floor
+      const grad2 = ctx.createLinearGradient(0, drawEnd, 0, H);
+      grad2.addColorStop(0, '#0f1520');
+      grad2.addColorStop(1, '#0a0d14');
+      ctx.fillStyle = grad2;
+      ctx.fillRect(x, drawEnd, 1, H - drawEnd);
+    }
+  } else {
+    // flat floor/ceiling
+    ctx.fillStyle = '#10192a';
+    ctx.fillRect(0, 0, W, H / 2);
+    ctx.fillStyle = '#080d18';
+    ctx.fillRect(0, H / 2, W, H / 2);
+  }
+
+  // Horizon line
+  ctx.strokeStyle = 'rgba(42,51,71,0.6)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Origin point
+  const originX = W / 2;
+  const originY = H - 1;
+
+  if (showOrigin) {
+    ctx.fillStyle = 'rgba(0,255,136,0.3)';
+    ctx.beginPath();
+    ctx.arc(originX, originY, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#00ff88';
+    ctx.beginPath();
+    ctx.arc(originX, originY, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Screen rays
+  if (showRays) {
+    for (let i = 0; i < numRays; i++) {
+      const camX = 2.0 * i / (numRays - 1) - 1.0;
+      const rdx = dirX + cpX * camX;
+      const rdy = dirY + cpY * camX;
+      const dist = castRay(ox, oy, rdx, rdy);
+      const perpDist = dist * Math.cos(Math.atan2(rdy, rdx) - angle);
+      const lineH = Math.min(H * 2, H / Math.max(perpDist, 0.01));
+      const rayScreenY = Math.max(0, (H - lineH) / 2);
+      const colX = Math.floor(i * W / (numRays - 1));
+
+      // color based on position
+      const t = i / (numRays - 1);
+      const alpha = 0.5 + 0.5 * Math.abs(1 - 2 * t);
+      ctx.strokeStyle = `rgba(0,255,136,${alpha * 0.8})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(originX, originY);
+      ctx.lineTo(colX, rayScreenY);
+      ctx.stroke();
+
+      // dot at wall hit
+      ctx.fillStyle = `rgba(0,255,136,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(colX, rayScreenY, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // labels
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.fillStyle = 'rgba(100,116,139,0.7)';
+  ctx.fillText('(WIN_WIDTH/2, WIN_HEIGHT-1)', originX + 6, originY - 6);
+  ctx.fillText('← origin', originX + 6, originY + 12);
+}
+
+function resize() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  draw();
+}
+
+// Controls
+document.getElementById('rays-slider').addEventListener('input', e => {
+  numRays = +e.target.value;
+  document.getElementById('rays-val').textContent = numRays;
+  draw();
+});
+
+document.getElementById('angle-slider').addEventListener('input', e => {
+  angle = +e.target.value / 100;
+  document.getElementById('angle-val').textContent = Math.round(angle * 180 / Math.PI) + '°';
+  draw();
+});
+
+document.getElementById('fov-slider').addEventListener('input', e => {
+  fovFactor = +e.target.value / 100;
+  document.getElementById('fov-val').textContent = fovFactor.toFixed(2);
+  draw();
+});
+
+document.getElementById('btn-rays').addEventListener('click', function() {
+  showRays = !showRays;
+  this.textContent = showRays ? 'rays on' : 'rays off';
+  this.classList.toggle('active', showRays);
+  draw();
+});
+
+document.getElementById('btn-3d').addEventListener('click', function() {
+  show3D = !show3D;
+  this.textContent = show3D ? '3D walls' : 'flat bg';
+  this.classList.toggle('active', show3D);
+  draw();
+});
+
+document.getElementById('btn-origin').addEventListener('click', function() {
+  showOrigin = !showOrigin;
+  this.textContent = showOrigin ? 'origin on' : 'show origin';
+  this.classList.toggle('active', showOrigin);
+  draw();
+});
+
+window.addEventListener('resize', resize);
+resize();
+</script>
+
+</body>
+</html>
