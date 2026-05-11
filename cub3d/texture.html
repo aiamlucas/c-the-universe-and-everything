@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cub3D — Texture Memory Layout</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0f1117;
+    --bg2:      #161b24;
+    --bg3:      #1d2535;
+    --border:   #2a3347;
+    --teal:     #1de9b6;
+    --purple:   #7c6ff7;
+    --amber:    #f5a623;
+    --red:      #ff5f6d;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --mono:     'JetBrains Mono', monospace;
+    --sans:     'Inter', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 32px 24px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--teal);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title.teal  { color: var(--teal); }
+  .panel-title.purple { color: var(--purple); }
+
+  /* flat array */
+  .flat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .flat-array {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+
+  .cell {
+    height: 28px;
+    min-width: 36px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    flex-shrink: 0;
+  }
+
+  .cell.teal   { background: rgba(29,233,182,0.15); border-color: rgba(29,233,182,0.3); color: var(--teal); }
+  .cell.teal2  { background: rgba(29,233,182,0.08); border-color: rgba(29,233,182,0.15); color: #64bfa8; }
+  .cell.teal3  { background: rgba(29,233,182,0.04); border-color: rgba(29,233,182,0.08); color: var(--muted); }
+  .cell.purple  { background: rgba(124,111,247,0.15); border-color: rgba(124,111,247,0.3); color: var(--purple); }
+  .cell.purple2 { background: rgba(124,111,247,0.08); border-color: rgba(124,111,247,0.15); color: #8b80c8; }
+  .cell.purple3 { background: rgba(124,111,247,0.04); border-color: rgba(124,111,247,0.08); color: var(--muted); }
+  .cell.dots    { background: transparent; border: none; color: var(--muted); font-size: 16px; min-width: 20px; }
+  .cell.last    { flex: 1; font-size: 8px; }
+
+  .formula {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--bg3);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    border-left: 2px solid var(--border);
+  }
+
+  .formula span { color: var(--amber); }
+
+  /* 2D grid */
+  .grid-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .tex-grid-wrap { display: flex; gap: 8px; align-items: flex-start; }
+
+  .tex-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 28px);
+    grid-template-rows: repeat(6, 28px);
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .tex-cell {
+    border-radius: 3px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+  }
+
+  .tex-cell.col-hi  { background: rgba(29,233,182,0.12); border-color: rgba(29,233,182,0.25); }
+  .tex-cell.row-hi  { background: rgba(245,166,35,0.12); border-color: rgba(245,166,35,0.25); }
+  .tex-cell.intersect {
+    background: rgba(29,233,182,0.45);
+    border-color: var(--teal);
+    box-shadow: 0 0 8px rgba(29,233,182,0.4);
+  }
+
+  .axis-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    writing-mode: horizontal-tb;
+  }
+
+  .col-labels {
+    display: grid;
+    grid-template-columns: repeat(6, 28px);
+    gap: 2px;
+    margin-bottom: 4px;
+  }
+
+  .col-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .col-label.hi { color: var(--teal); font-weight: 600; }
+
+  .row-labels {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-right: 4px;
+    padding-top: 0;
+  }
+
+  .row-label {
+    height: 28px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 4px;
+  }
+
+  .row-label.hi { color: var(--amber); font-weight: 600; }
+
+  /* screen grid */
+  .screen-grid-outer {
+    width: 100%;
+    height: 160px;
+    background: var(--bg3);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .screen-ceiling {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40px;
+    background: rgba(29,233,182,0.1);
+    border-bottom: 1px solid rgba(29,233,182,0.2);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .screen-floor {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 40px;
+    background: rgba(245,166,35,0.08);
+    border-top: 1px solid rgba(245,166,35,0.15);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .screen-wall-strip {
+    position: absolute;
+    top: 40px;
+    width: 24px;
+    height: 80px;
+    background: rgba(124,111,247,0.35);
+    border: 1px solid rgba(124,111,247,0.6);
+    border-radius: 2px;
+    left: 55%;
+  }
+
+  .screen-col-label {
+    position: absolute;
+    top: 44px;
+    left: 55%;
+    transform: translateX(28px);
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--purple);
+  }
+
+  .screen-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* step table */
+  .step-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 10px;
+    margin-top: 16px;
+  }
+
+  .step-table th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .step-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(42,51,71,0.5);
+    color: var(--text);
+  }
+
+  .step-table tr:last-child td { border-bottom: none; }
+  .step-table td:first-child { color: var(--muted); }
+  .badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+  }
+  .badge.compress { background: rgba(255,95,109,0.15); color: var(--red); border: 1px solid rgba(255,95,109,0.3); }
+  .badge.exact    { background: rgba(29,233,182,0.15); color: var(--teal); border: 1px solid rgba(29,233,182,0.3); }
+  .badge.stretch  { background: rgba(124,111,247,0.15); color: var(--purple); border: 1px solid rgba(124,111,247,0.3); }
+  .badge.wrap     { background: rgba(245,166,35,0.15); color: var(--amber); border: 1px solid rgba(245,166,35,0.3); }
+
+  /* wrap section */
+  .wrap-section { margin-top: 16px; }
+  .wrap-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(42,51,71,0.4);
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+  .wrap-row:last-child { border-bottom: none; }
+  .wrap-val { color: var(--muted); min-width: 100px; }
+  .wrap-eq  { color: var(--text); min-width: 70px; }
+  .wrap-note { color: var(--amber); font-size: 9px; }
+
+  .section-sep {
+    grid-column: 1 / -1;
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+
+  .full-width { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+
+<h1>cub3D — texture buffer &amp; screen buffer memory layout</h1>
+
+<div class="grid">
+
+  <!-- TEXTURE BUFFER -->
+  <div class="panel">
+    <div class="panel-title teal">tex-&gt;addr  (64×64 = 4096 pixels, read only)</div>
+
+    <div class="flat-label">as flat array:</div>
+    <div class="flat-array">
+      <div class="cell teal">[0]</div>
+      <div class="cell teal2">[1]</div>
+      <div class="cell teal3">[2]</div>
+      <div class="cell dots">···</div>
+      <div class="cell teal3 last">[4095]</div>
+    </div>
+
+    <div class="formula">
+      addr + (<span>tex_y</span> × line_length + <span>tex_x</span> × 4)
+    </div>
+
+    <div class="grid-label">as 2D grid (tex_x = column, tex_y = row):</div>
+
+    <div class="tex-grid-wrap">
+      <div>
+        <div style="height:14px"></div>
+        <div class="row-labels">
+          <div class="row-label">0</div>
+          <div class="row-label">1</div>
+          <div class="row-label hi">2</div>
+          <div class="row-label">3</div>
+          <div class="row-label">·</div>
+          <div class="row-label">·</div>
+        </div>
+      </div>
+      <div>
+        <div class="col-labels">
+          <div class="col-label">0</div>
+          <div class="col-label">1</div>
+          <div class="col-label hi">2</div>
+          <div class="col-label">3</div>
+          <div class="col-label">·</div>
+          <div class="col-label">·</div>
+        </div>
+        <div class="tex-grid">
+          <div class="tex-cell"></div><div class="tex-cell"></div><div class="tex-cell col-hi"></div><div class="tex-cell"></div><div class="tex-cell"></div><div class="tex-cell"></div>
+          <div class="tex-cell"></div><div class="tex-cell"></div><div class="tex-cell col-hi"></div><div class="tex-cell"></div><div class="tex-cell"></div><div class="tex-cell"></div>
+          <div class="tex-cell row-hi"></div><div class="tex-cell row-hi"></div><div class="tex-cell intersect"></div><div class="tex-cell row-hi"></div><div class="tex-cell row-hi"></div><div class="tex-cell row-hi"></div>
+          <div class="tex-cell"></div><div class="tex-cell"></div><div class="tex-cell col-hi"></div><div class="tex-cell"></div><div class="tex-cell"></div><div class="tex-cell"></div>
+          <div class="tex-cell"></div><div class="tex-cell"></div><div class="tex-cell col-hi"></div><div class="tex-cell"></div><div class="tex-cell"></div><div class="tex-cell"></div>
+          <div class="tex-cell"></div><div class="tex-cell"></div><div class="tex-cell col-hi"></div><div class="tex-cell"></div><div class="tex-cell"></div><div class="tex-cell"></div>
+        </div>
+      </div>
+      <div style="padding-top:14px;padding-left:8px">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--teal);margin-bottom:4px">tex_x = fixed</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--amber)">tex_y = advances</div>
+        <div style="margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--muted)">● = sampled pixel</div>
+      </div>
+    </div>
+
+    <table class="step-table">
+      <thead>
+        <tr><th>line_height</th><th>step</th><th>tex_y</th><th>result</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>32</td><td>2.0</td><td>0,2,4,6…</td><td><span class="badge compress">compressed</span></td></tr>
+        <tr><td>64</td><td>1.0</td><td>0,1,2,3…63</td><td><span class="badge exact">1:1</span></td></tr>
+        <tr><td>320</td><td>0.2</td><td>0,0,0,0,0,1,1…</td><td><span class="badge stretch">stretched</span></td></tr>
+        <tr><td>3000</td><td>0.02</td><td>0×50,1×50…</td><td><span class="badge wrap">stretched + tiles</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SCREEN BUFFER -->
+  <div class="panel">
+    <div class="panel-title purple">game-&gt;img.addr  (1920×1080, write)</div>
+
+    <div class="flat-label">as flat array:</div>
+    <div class="flat-array">
+      <div class="cell purple">[0]</div>
+      <div class="cell purple2">[1]</div>
+      <div class="cell purple3">[2]</div>
+      <div class="cell dots">···</div>
+      <div class="cell purple3 last">[2073599]</div>
+    </div>
+
+    <div class="formula">
+      addr + (<span>y</span> × line_length + <span>x</span> × 4)
+    </div>
+
+    <div class="grid-label">screen layout (x = screen column, y = screen row):</div>
+
+    <div class="screen-grid-outer">
+      <div class="screen-ceiling"><span class="screen-label" style="color:rgba(29,233,182,0.6)">ceiling</span></div>
+      <div class="screen-floor"><span class="screen-label" style="color:rgba(245,166,35,0.6)">floor</span></div>
+      <div class="screen-wall-strip"></div>
+      <div class="screen-col-label">col x</div>
+    </div>
+
+    <div class="grid-label">tex_y wrap with &amp; (height - 1):</div>
+    <div class="wrap-section">
+      <div class="wrap-row"><span class="wrap-val">tex_y = 0..63</span><span class="wrap-eq">→ normal</span><span class="wrap-note">in range</span></div>
+      <div class="wrap-row"><span class="wrap-val">tex_y = 64 &amp; 63</span><span class="wrap-eq">= 0</span><span class="wrap-note">← tiles back to top</span></div>
+      <div class="wrap-row"><span class="wrap-val">tex_y = 65 &amp; 63</span><span class="wrap-eq">= 1</span><span class="wrap-note">← row 1</span></div>
+      <div class="wrap-row"><span class="wrap-val">tex_y = 127 &amp; 63</span><span class="wrap-eq">= 63</span><span class="wrap-note">← last row</span></div>
+      <div class="wrap-row"><span class="wrap-val">tex_y = 128 &amp; 63</span><span class="wrap-eq">= 0</span><span class="wrap-note">← tiles again</span></div>
+    </div>
+
+    <div style="margin-top:16px;padding:12px;background:var(--bg3);border-radius:8px;border-left:2px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.8">
+        <span style="color:var(--teal)">tex_x</span> = fixed for whole strip (where along wall)<br>
+        <span style="color:var(--amber)">tex_y</span> = advances each screen pixel (walks down texture)<br>
+        <span style="color:var(--purple)">x</span>     = screen column (0..1919, loop counter)<br>
+        <span style="color:var(--purple)">y</span>     = screen row (draw_start..draw_end)
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:2">
+  <span style="color:var(--teal);font-weight:600">tex_x</span> and <span style="color:var(--purple);font-weight:600">x</span> are independent — tex_x depends on where the ray hit the wall, x is just the loop counter.
+  A ray at screen column <span style="color:var(--purple)">x=800</span> might sample texture column <span style="color:var(--teal)">tex_x=47</span> — no proportional relationship.
+</div>
+
+</body>
+</html>
