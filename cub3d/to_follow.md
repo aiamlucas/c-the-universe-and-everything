@@ -11,21 +11,7 @@ map → [ ptr0 | ptr1 | ptr2 | ptr3 | ptr4 | NULL ]
 
 ## Initialization
 
-### MLX and textures
-First we initialize MLX (the graphics library) and load the four XPM wall textures.
-
 ### Player position — pixel space vs grid space
-
-The spawn point in the map is a grid cell (integer coordinates). We need to
-place the player in the **center** of that cell, not at its corner:
-
-```c
-game->player.x = (game->config.player_x + 0.5) * BLOCK_SIZE;
-game->player.y = (game->config.player_y + 0.5) * BLOCK_SIZE;
-```
-
-`+ 0.5` centers inside the cell. `× BLOCK_SIZE` converts from grid space to
-pixel space. This is a good moment to explain the two coordinate systems:
 
 ```
 PIXEL SPACE — where the player lives:
@@ -45,15 +31,7 @@ GRID SPACE (÷ 64) — where the map lives and DDA operates:
                                     grid_cell_x   = 5  ← (int)5.625
 ```
 
-The bridge: `pixel / BLOCK_SIZE = grid`,  `grid × BLOCK_SIZE = pixel`.
-
 ### Angle and direction vectors
-
-The parsed spawn direction character is mapped to an angle in radians:
-
-```
-'N' → 3π/2    'S' → π/2    'E' → 0    'W' → π
-```
 
 Y grows **downward** (screen convention). One full circle = 2π ≈ 6.28 rad:
 
@@ -212,36 +190,6 @@ dir_y > 0 → step_y = +1  (marching down)
 ray_dist_x = cell_fraction_x × delta_dist_x
 ```
 
-first gridline is special, player is inside a cell, not at a gridline.
- 
-```
-going RIGHT (step_x = +1):
- 
-  cell 5              cell 6
-  +────────────────────+────────
-  │    P               │
-  │    5.625           │
-  │    │◄── 0.375 ────►│  ← first gridline
-  +────────────────────+────────
- 
-  cell_fraction = grid_cell + 1.0 - pos_in_grid
-                = 6.0 - 5.625 = 0.375
- 
-going LEFT (step_x = -1):
- 
-  cell_fraction = pos_in_grid - grid_cell
-                = 5.625 - 5.0 = 0.625
-```
- 
-```
-ray_dist = cell_fraction × delta_dist   ← only once
- 
-init:   ray_dist = 0.375 × delta_dist   ← special first step
-step 1: ray_dist += delta_dist          ← uniform from here
-step 2: ray_dist += delta_dist
-step N: ray_dist += delta_dist → WALL
-```
- 
 ---
 
 **DDA**
@@ -302,12 +250,6 @@ perp_dist = 10.0 → line_height = 1080 / 10.0 = 108px   (wall far away     → 
 
 **2. `set_col_geometry`** where on screen (centered on horizon):
  
-```
-draw_start = WIN_HEIGHT/2 - line_height/2
-draw_end   = WIN_HEIGHT/2 + line_height/2
-clamped to [0, WIN_HEIGHT-1]
-```
-
 Example 1: medium distance wall (line_height = 540, WIN_HEIGHT = 1080):
 
 ```
@@ -339,118 +281,7 @@ y = 0          ─┤──────────┐  ← draw_start
                 │          │
 y = 1079       ─┤──────────┘  ← draw_end
 ```
-
 ---
-
-
-# Recap - draw_3d — How the 3D Render Works
-
-The 3D scene is an illusion made of 1920 vertical strips — one per screen column.
-Each strip represents one ray cast from the player into the world.
-The height of each strip depends on how far the wall is — close walls are tall, far walls are short.
-
----
-
-## The idea
-
-The player has a direction (`dir`) and a camera plane (`cplane`) — a vector perpendicular
-to `dir` that represents the width of the screen in world space:
-
-```
-cplane:  ◄────────────────────────────────►
-             -1      0      +1
-              \      │      /   rays fan out
-               \     │     /
-                \    │    /
-                 \   │   /
-                     P
-                     │
-                    dir
-```
-
-For each of the 1920 columns, a ray is cast in a slightly different direction —
-from straight left (`camera_x = -1`) through center (`camera_x = 0`) to straight right (`camera_x = +1`).
-The ray direction is `dir + cplane × camera_x` — forward plus a sideways offset.
-
----
-
-## Step 1 — fill floor and ceiling
-
-Before any rays are cast, the entire buffer is filled with two flat colors —
-top half ceiling, bottom half floor. This also clears the previous frame.
-
-RGB values from the `.cub` file are packed into one 32-bit int:
-```
-color = (R << 16) | (G << 8) | B
-```
-The buffer is a flat array — `WIN_WIDTH × WIN_HEIGHT` pixels total.
-The halfway point is the horizon line.
-
----
-
-## Step 2 — for each column, cast a ray
-
-`camera_x` maps each column to `[-1.0, +1.0]`.
-`ray_dir = dir + cplane × camera_x` — the direction this ray travels.
-
-The ray is initialized with:
-- its position in grid space (`pos_in_grid = player.x / 64`)
-- `delta_dist` — how far it travels to cross one full cell (`1 / |ray_dir|`)
-- `step` — which direction to march (`+1` or `-1` per axis)
-- `ray_dist` — distance to the first gridline (`cell_fraction × delta_dist`)
-
----
-
-## Step 3 — march with DDA until wall hit
-
-DDA jumps gridline by gridline — no tiny steps, no missed cells.
-Each iteration picks the closer gridline (X or Y), steps one cell, checks the map.
-
-The number of steps tells you how far the wall is — few steps = close, many = far.
-After the loop, `ray_dist - delta_dist` gives the exact perpendicular distance to the wall.
-
----
-
-## Step 4 — draw the strip
-
-`perp_dist` (perpendicular distance, not raw ray length) gives the strip height:
-```
-line_height = WIN_HEIGHT / perp_dist
-```
-
-The strip is centered on the horizon — `draw_start` and `draw_end` are clamped
-so very close walls don't write outside the buffer.
-
-The texture face is picked from `side` + `step_x/y`.
-`wall_x` traces the ray to find where along the wall it hit — that gives `tex_x`.
-`tex_y` advances each screen pixel, walking down the texture column.
-
-Each pixel is sampled from the texture buffer and written to the screen buffer
-using the same address formula: `row × line_length + col × 4`.
-
-The texture coordinates:
-- `tex_x` — which column of the texture, from where along the wall the ray hit
-- `tex_y` — advances each screen pixel walking down that texture column
-- `& (height-1)` wraps `tex_y` back into range on very close walls
-
-Each pixel: read color from texture at `(tex_x, tex_y)` → write to screen buffer at `(x, y)`.
-
----
-
-## Why perpendicular distance?
-
-Raw ray length causes fisheye — flat walls appear to bow outward because
-rays at the screen edges travel further than center rays to reach the same wall.
-Perpendicular distance (measured at right angle to the camera plane) is the same
-for all columns hitting the same flat wall — no distortion.
-
-```
-raw ray length:     varies per column  → fisheye
-perp_dist:          same per flat wall → correct perspective
-```
-
----
-
 
 # Texture Pipeline
 
@@ -516,31 +347,12 @@ img_put_pixel(game, x, y, color)       ← write to screen buffer
 mlx_put_image_to_window()              ← flush entire screen buffer once per frame 
 ```
 
-```
-TEXTURE BUFFER (read only)          SCREEN BUFFER (write)
-──────────────────────────          ─────────────────────
+---
 
-XPM file (plain text)               game->img.addr
-      ↓                             (flat array of 32-bit pixels)
-mlx_xpm_file_to_image()
-      ↓                             ┌──────────────────┐
-tex->addr                           │     ceiling      │
-(flat array of 32-bit pixels)       ├──────────────────┤
-                                    │  │               │
-┌───┬───┬───┬[47]┬───┐              │  │  wall strip   │
-│   │   │   │ ██ │   │  row 0       │  │  (col x)      │
-│   │   │   │ ██ │   │  row 1  →    │  │               │
-│   │   │   │ ██ │   │  row 2       ├──────────────────┤
-│   │   │   │ ██ │   │  ...         │      floor       │
-└───┴───┴───┴────┴───┘              └──────────────────┘
-     tex_x=47 fixed                      ↓
-          ↓                    mlx_put_image_to_window()
-  get_texture_pixel()                    ↓
-          ↓                           window
-     color (32-bit)
-          ↓
-     img_put_pixel(x, y)
-```
+## How tex_y walks down the texture column
+
+`y` advances 1 screen pixel at a time (loop counter).
+`tex_y` advances by `step` — how fast depends on the wall distance.
 
 ```
 TEXTURE (64×64)              SCREEN (1920×1080)
@@ -563,57 +375,25 @@ x=800    → fixed column on screen     (which ray we are drawing)
 tex_y    → advances each screen row   (walks down texture column 47)
 y        → advances each screen row   (walks down screen column 800)
 ```
----
-
-# tex_x vs x — two independent coordinates
-
-`tex_x` and `x` look similar but are completely unrelated:
 
 ```
-tex_x  → which column of the TEXTURE (where along the wall the ray hit)
-x      → which column of the SCREEN  (the draw_3d loop counter 0..1919)
-```
+step=2.0  (far wall):    tex_y: 0    2   4   6   8   10    (skips rows)
+                         y:     508 509 510 511 512 513 
 
-They scale independently:
+step=1.0  (exact):       tex_y: 0  1  2  3  4   5     (1:1)
+                         y:     508 509 510 511 512 
 
-```
-SCREEN (1920 columns)                    TEXTURE (64 columns)
+step=0.2  (medium):      tex_y: 0  0  0  0  0   1   1    (repeats rows)
+                         y:     270 271 272 273 274 275.
 
-0%        42%       74%    100%          0%        74%      100%
-│          │         │        │          │          │          │
-├──────────┼─────────┼────────┤          ├──────────┼──────────┤
-col 0   col 800             col 1919    col 0     col 47    col 63
-
-screen col 800 = 42% across screen
-tex_x = 47     = 74% across texture   ← different percentages, no relation
-
-
-wall_x  → where along the wall face the ray hit [0.0, 1.0]
-          the bridge between x and tex_x: (Screen and Texture)
-          x → camera_x → ray_dir → DDA → wall_x → tex_x
-
-tex_x = wall_x × tex_width   (e.g. 0.74 × 64 = 47)
-```
-
-```
-SCREEN (1920 cols)        WALL FACE             TEXTURE (64 cols)
-
-0%      42%    100%       0%      74%   100%    0%      74%   100%
-│        │        │       │        │       │    │        │       │
-├────────┼────────┤       ├────────┼───────┤    ├────────┼───────┤
-0      800     1919       0.0    0.74     1.0   0       47      63
-
-x=800                     wall_x=0.74            tex_x=47
-(loop counter)            (ray hit 74%            (0.74 × 64)
-                           across face)
-
-      x → camera_x → ray_dir → DDA ──→ wall_x ──→ tex_x
+step=0.02 (close):       tex_y: 0  0  0  ... 0   1   1   (very stretched)
+                         y:     0  1  2  ... 49  50  51
 ```
 
 ---
 
-# set_tex_y — starting texture row and advance per pixel
-
+## set_tex_y
+ 
 ```c
 col->step = (double)tex->height / line_height;
 dist_from_center = (double)col->draw_start - (double)WIN_HEIGHT / 2.0;
@@ -621,439 +401,125 @@ half_wall        = (double)line_height / 2.0;
 tex_row_offset   = dist_from_center + half_wall;
 col->text_pos    = tex_row_offset * col->step;
 ```
+ 
+**step** — how much to advance in the texture per screen pixel:
+```
+step=2.0  (far,   line_height=32)   → each screen pixel = 2 texture rows
+step=1.0  (exact, line_height=64)   → each screen pixel = 1 texture row
+step=0.2  (med,   line_height=320)  → every 5 screen pixels = 1 texture row
+step=0.02 (close, line_height=3000) → every 50 screen pixels = 1 texture row
+```
+ 
+---
+ 
+### 1) Normal wall — text_pos = 0
+ 
+Wall fits on screen, `draw_start` not clamped. Example (`line_height=540`):
+ 
+```
+step             = 64 / 540   = 0.118
+draw_start       = 540 - 270  = 270
+dist_from_center = 270 - 540  = -270
+half_wall        = 540 / 2    =  270
+tex_row_offset   = -270 + 270 =    0
+text_pos         = 0 × 0.118  =    0   ← start at texture row 0
+```
+ 
+`dist_from_center` and `half_wall` always cancel → `text_pos = 0` for any normal wall.
+ 
+---
+ 
+### 2) Clamped wall — text_pos > 0
+ 
+Wall too tall for screen, `draw_start` clamped to `0`. Example (`line_height=3000`):
+ 
+```
+step             = 64 / 3000   = 0.021
+real draw_start  = 540 - 1500  = -960  (offscreen → clamped to 0)
+dist_from_center = 0 - 540     = -540
+half_wall        = 3000 / 2    = 1500
+tex_row_offset   = -540 + 1500 =  960  ← 960px down the full wall
+text_pos         = 960 × 0.021 =   20  ← skip first 20 texture rows
+```
+ 
+```
+real wall top  y = -960  ── row 0  (offscreen, skipped)
+                          │
+draw_start     y =    0  ─┼── text_pos = 20  ← start here
+                          │
+draw_end       y = 1079  ─┘
+```
+ 
+The first 20 texture rows were offscreen — `text_pos` skips them so the
+texture aligns correctly with the visible part of the wall.
 
 ---
 
-## step — how fast to advance through the texture
-
-`step = tex_height / line_height` maps 64 texture rows onto `line_height` screen pixels:
-
-```
-line_height = 32   step=2.0  → 1 screen pixel = 2 texture rows  (compressed)
-line_height = 64   step=1.0  → 1 screen pixel = 1 texture row   (1:1)
-line_height = 320  step=0.2  → 5 screen pixels = 1 texture row  (stretched)
-line_height = 3000 step=0.02 → 50 screen pixels = 1 texture row (very stretched + tiles)
-```
-
----
-
-## tex_x vs tex_y
-
-```
-tex_x   fixed for the whole strip — which column of the texture (where ray hit the wall)
-tex_y   advances each screen pixel — walks down that texture column
-```
-
-```
-SCREEN column 800              TEXTURE column 47
-
-draw_start        → tex_y = 0   ← starts at row 0 (normal wall)
-y = draw_start+1  → tex_y = 0   (step=0.2, same row for 5 pixels)
-y = draw_start+5  → tex_y = 1   ← new texture row
-...
-draw_end          → tex_y = 63  ← last row
-```
-
----
-
-## text_pos vs tex_y
-
-`text_pos` grows forever. `tex_y = (int)text_pos & 63` wraps it into `[0, 63]`:
-
-```
-text_pos = 62.0  → tex_y = 62
-text_pos = 63.0  → tex_y = 63
-text_pos = 64.0  → tex_y = 0   ← wraps
-text_pos = 65.0  → tex_y = 1
-text_pos = 128.0 → tex_y = 0   ← wraps again
-```
-
-Tiling only happens when `line_height > 64` (very close wall):
-
-```
-y=0    ┌──────┐
-       │ row 0│  ← text_pos=20 (wall top offscreen, starts mid-texture)
-       │  ... │
-       │ row63│  ← text_pos reaches 64
-       │ row 0│  ← wraps (& 63), texture tiles
-       │  ... │
-y=1079 └──────┘
-```
-
----
-
-## text_pos — where to start in the texture
-
-Normally `text_pos = 0` — the texture always starts at row 0.
-
-Only non-zero when `draw_start` is clamped (very close wall, `line_height > WIN_HEIGHT`):
-
-```
-normal wall:   tex_row_offset = -half_wall + half_wall = 0   → text_pos = 0
-clamped wall:  draw_start forced to 0 → offset > 0          → text_pos > 0 (skip rows)
-```
-
-Example — close wall (`line_height = 3000`):
-```
-dist_from_center =    0 - 540 = -540
-half_wall        = 3000 / 2   = 1500
-tex_row_offset   = -540 + 1500 =  960
-text_pos         = 960 × 0.021 = 20   ← skip first 20 rows (they were offscreen)
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## tex_y tiling on very close walls
-
-`tex_x` is fixed for the whole strip — always column 47 (same wall column all the way down).
-`tex_y`  advances each screen pixel (walks down the texture)
-        --> advances and wraps with `& 63` — tiles vertically on close walls:
-
-```
-SCREEN column 800              TEXTURE column 47
-
-draw_start = 0  → tex_y = 32   ← starts mid-texture (wall top offscreen)
-y = 100         → tex_y = 40
-y = 200         → tex_y = 50
-y = 300         → tex_y = 63
-y = 301         → tex_y = 0    ← wraps here
-y = 302         → tex_y = 1
-y = 303         → tex_y = 2
-y = 304         → tex_y = 3
-...
-y = 400         → tex_y = 10
-draw_end = 1079 → tex_y = 45   ← tiled twice across the strip
-```
-
-**How does one texture column fill the entire strip at any distance?**
-	`step = tex_height / line_height` does the mapping:
-
-```
-wall far away  (line_height = 64):
-  step = 64/64 = 1.0 → each screen pixel = 1 texture row
-  tex_y: 0,1,2,3...63 → texture fits exactly
-
-wall medium (line_height = 320):
-  step = 64/320 = 0.2 → every 5 screen pixels = 1 texture row
-  tex_y: 0,0,0,0,0,1,1,1,1,1,2... → texture stretched
-
-wall very close (line_height = 3000):
-  step = 64/3000 = 0.02 → every 50 screen pixels = 1 texture row
-  tex_y: 0×50 rows, 1×50 rows... → very stretched
-  AND wraps: after row 63 → back to 0 → tiles ✓
-```
-
-```
-line_height = 64  (wall at exact distance where texture fits 1:1):
-  step = 64/64 = 1.0 → each screen pixel = 1 texture row
-  tex_y: 0,1,2,3,...,63 → fits exactly, no wrap
-
-line_height = 320 (wall medium distance, stretched):
-  step = 64/320 = 0.2 → every 5 screen pixels = 1 texture row
-  tex_y: 0,0,0,0,0,1,1,1,1,1,2,2,2,2,2,... → stretched
-
-line_height = 3000 (wall very close, stretched + tiles):
-  step = 64/3000 = 0.02 → every 50 screen pixels = 1 texture row
-  tex_y: 0×50, 1×50, 2×50,... → very stretched
-  after row 63 → wraps to 0 → tiles again
-
-line_height = 32 (wall very far, compressed):
-  step = 64/32 = 2.0 → each screen pixel = 2 texture rows skipped
-  tex_y: 0,2,4,6,8,...,62 → only even rows sampled
-  texture compressed, fits in 32 screen pixels
-```
-
-```
-very close wall strip on screen:
-
-y=0    ┌──────┐
-       │ row 0│  ← texture starts at row 20 (text_pos=20)
-       │ row 1│
-       │  ... │
-       │ row63│  ← bottom of texture
-       │ row 0│  ← wraps back to top (& 63)
-       │ row 1│  ← texture repeats
-       │  ... │
-       │ row63│  ← wraps again
-       │ row 0│
-       │  ... │
-y=1079 └──────┘
-```
-
-
----
-
-# Back to the code!!
-
-## 1. get_texture — which texture?
-
-After DDA hits a wall, `side` and `step_x/y` identify the face:
-
-```
-side=0, step_x > 0  →  West   (game->we)
-side=0, step_x < 0  →  East   (game->ea)
-side=1, step_y > 0  →  North  (game->no)
-side=1, step_y < 0  →  South  (game->so)
-```
-
-The texture is stored in `col.tex` — a pointer to the `t_texture` struct
-that holds `addr`, `width`, `height`, etc.
-
----
-
-## 2. set_wall_x — where along the wall? → wall_x [0.0, 1.0]
-
-```
-wall face:
- ← one full grid cell = 64px  →
-├──────────────────────────────┤
-0.0          0.5             1.0
-                  ↑
-              wall_x = 0.6   (ray hit 60% across the face)
-
-```
-
-Traces the ray from player: `pos_in_grid + perp_dist × dir` = hit coordinate.
-`floor()` strips the cell number → keeps only the fraction:
-
-
-```
-Example:
-
-side == 0 (vertical wall), hit varies in Y:
-pos_in_grid_y = 4.2
-perp_dist     = 1.8
-dir_y         = 0.3
-
-wall_x = 4.2 + 1.8 × 0.3 = 4.74
-4.74 - floor(4.74) = 0.74  → ray hit 74% across the wall face
-```
-
----
-
-## 3. set_tex_x — which column of the texture?
-
-```
-tex_x = wall_x × tex_width
-0.74 × 64 = 47   ← always sample column 47 for this strip
-
-tex_x is FIXED for the entire strip — it never changes as we draw down.
-```
-
-East and North faces are mirrored → flip:
-`tex_x = tex_width - tex_x - 1`
-```
-tex_width = 64,  wall_x = 0.74  →  tex_x = 47
-
-without flip (West/South):   sample col 47  →  →  →  col 47
-with flip    (East/North):   64 - 47 - 1 = 16  ←  ←  col 16
-```
-
-For the west texture at column 47:
-```
-/* XPM */
-"64 64 4 1"
-"  c #000000"
-"+ c #030D22"
-
-column 47 of each row:
-row 0:  '+'  → 0x030D22
-row 1:  '+'  → 0x030D22
-...
-row 8:  ' '  → 0x000000
-row 9:  '+'  → 0x030D22
-```
-
----
-
-# set_tex_y — starting texture row and advance per pixel
-
+# draw_wall_column — the pixel loop
+ 
 ```c
-col->step = (double)tex->height / line_height;
-dist_from_center = (double)col->draw_start - (double)WIN_HEIGHT / 2.0;
-half_wall        = (double)line_height / 2.0;
-tex_row_offset   = dist_from_center + half_wall;
-col->text_pos    = tex_row_offset * col->step;
-```
-
----
-
-## step — how fast to advance through the texture
-
-`step = tex_height / line_height`
-
-The texture is 64px tall. The wall strip is `line_height` pixels on screen.
-We need to map 64 texture rows onto `line_height` screen pixels:
-
-```
-line_height = 640  → step = 64/640 = 0.10  → 10 screen pixels = 1 texture row  (stretched)
-line_height = 320  → step = 64/320 = 0.20  → 5  screen pixels = 1 texture row
-line_height = 64   → step = 64/64  = 1.00  → 1  screen pixel  = 1 texture row  (1:1)
-line_height = 32   → step = 64/32  = 2.00  → 1  screen pixel  = 2 texture rows (compressed)
-```
-
-```
-far wall   → small line_height → large step  → texture compressed
-close wall → large line_height → small step  → texture stretched
-```
-
-Each iteration of the pixel loop: `text_pos += step` — advances through the texture.
-
----
-
-## text_pos — where to start in the texture
-
-### Normal wall (draw_start not clamped)
-
-`line_height = 540`, `WIN_HEIGHT = 1080`, `draw_start = 270`:
-
-```
-dist_from_center = draw_start - WIN_HEIGHT/2 = 270 - 540 = -270
-half_wall        = line_height / 2           = 540 / 2   =  270
-tex_row_offset   = -270 + 270                            =    0
-text_pos         = 0 × step                              =    0   ← start at texture row 0
-```
-
-The strip starts exactly at the top of the texture — correct.
-
----
-
-### Very close wall (draw_start clamped to 0)
-
-`line_height = 3000`, `WIN_HEIGHT = 1080`:
-
-Without clamping: `draw_start = 540 - 1500 = -960` (offscreen).
-With clamping: `draw_start = 0`.
-
-```
-dist_from_center = 0 - 540    = -540
-half_wall        = 3000 / 2   = 1500
-tex_row_offset   = -540 + 1500 =  960   ← 960px down the wall
-text_pos         = 960 × step           ← start partway through the texture ✓
-```
-
-Why does this work? `tex_row_offset` measures how far down the **full unclamped wall**
-`draw_start` actually is. The real top of the wall is at `y = -960` (offscreen).
-`draw_start = 0` is 960px below that. So we skip the first 960px of the texture
-and start where the visible strip begins.
-
-```
-real wall top  y = -960  ─┤  (offscreen)
-                          │  ← 960px of texture skipped
-              y =    0   ─┼──────────┐  ← draw_start (clamped)
-                          │  W A L L │  ← text_pos starts here
-              y = 1079   ─┼──────────┘
-```
-
----
-
-## In the pixel loop
-
-```c
-tex_y = (int)col.text_pos & (col.tex->height - 1);  // wrap [0, 63]
-col.text_pos += col.step;                            // advance
-```
-
-`text_pos` starts at `tex_row_offset × step` and advances by `step` each pixel.
-`& (height - 1)` wraps it back into `[0, 63]` if it exceeds the texture height.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----
-
-## 4. set_tex_y — starting row and step per pixel
-
-```
-step = tex_height / line_height   (texture rows per screen pixel)
-```
-
-Example — strip 320px tall, texture 64px:
-```
-step = 64 / 320 = 0.2   → every 5 screen pixels = 1 texture row
-```
-
-`text_pos` starts at the correct row (adjusted for clamped `draw_start` on close walls)
-and advances by `step` each screen pixel.
-
----
-
-## 5. The pixel loop
-
-```c
+y = col.draw_start;
 while (y <= col.draw_end)
 {
-    tex_y = (int)col.text_pos & (col.tex->height - 1);  // wrap [0, 63]
-    col.text_pos += col.step;                            // advance texture row
+    tex_y = (int)col.text_pos;
+    col.text_pos += col.step;
     img_put_pixel(game, x, y, get_texture_pixel(col.tex, col.tex_x, tex_y));
     y++;
 }
 ```
-
-`tex_x` = 47 (fixed)
-`tex_y` advances each screen pixel:
-
+ 
+One iteration = one screen pixel of the wall strip.
+ 
+---
+ 
+## what each line does
+ 
 ```
-screen y=270  text_pos=0.0 → tex_y=0  → tex[47][0]  → 0x030D22 → pixel (x, 270)
-screen y=271  text_pos=0.2 → tex_y=0  → tex[47][0]  → 0x030D22 → pixel (x, 271)
-screen y=272  text_pos=0.4 → tex_y=0  → tex[47][0]  → 0x030D22 → pixel (x, 272)
-screen y=273  text_pos=0.6 → tex_y=0  → tex[47][0]  → 0x030D22 → pixel (x, 273)
-screen y=274  text_pos=0.8 → tex_y=0  → tex[47][0]  → 0x030D22 → pixel (x, 274)
-screen y=275  text_pos=1.0 → tex_y=1  → tex[47][1]  → 0x030D22 → pixel (x, 275)
+y = col.draw_start          start at the top of the wall strip
+while (y <= col.draw_end)   stop at the bottom
+ 
+tex_y = (int)col.text_pos   which texture row to sample (truncate float to int)
+col.text_pos += col.step    advance text_pos by step (walk down the texture)
+img_put_pixel(x, y, color)  write the sampled color to screen buffer at (x, y)
+y++                         move one pixel down the screen
+```
+ 
+---
+ 
+## the two walkers
+ 
+```
+y          walks the SCREEN    — 1 pixel at a time, draw_start → draw_end
+tex_y      walks the TEXTURE   — step pixels at a time, 0 → tex_height
+```
+ 
+They walk in parallel — for every screen pixel `y`, there is one texture pixel `tex_y`.
+`step` controls how fast `tex_y` advances relative to `y`.
+ 
+---
+ 
+## concrete example (line_height=320, step=0.2)
+ 
+```
+y     tex_y   color              screen pixel
+270   0       0x030D22 ░░░░░░    (x=800, y=270)
+271   0       0x030D22 ░░░░░░    same row, same color
+272   0       0x030D22 ░░░░░░
+273   0       0x030D22 ░░░░░░
+274   0       0x030D22 ░░░░░░
+275   1       0x020818 ▒▒▒▒▒▒    ← new row, different color
+276   1       0x020818 ▒▒▒▒▒▒
+277   1       0x020818 ▒▒▒▒▒▒
+278   1       0x020818 ▒▒▒▒▒▒
+279   1       0x020818 ▒▒▒▒▒▒
+280   2       0x000000 ██████    ← new row, different color
+281   2       0x000000 ██████
 ...
-screen y=319  text_pos=9.8 → tex_y=9  → tex[47][9]  → 0x000000 → pixel (x, 319)
+810   63      0xFF00FF ▓▓▓▓▓▓    ← last row (magenta)
 ```
-
----
-
-## 6. get_texture_pixel — read from texture buffer
-
-```c
-pixel = tex->addr + (tex_y * tex->line_length + tex_x * (tex->bits_per_pixel / 8));
-return (*(int *)pixel);
-```
-
-Same address formula as `img_put_pixel` — the texture buffer is a flat array
-just like the render buffer. Jump to row `tex_y`, then column `tex_x`, read 4 bytes.
-
----
-
-## 7. The bitmask wrap
-
-On very close walls, `line_height > tex_height` — `text_pos` would exceed 63.
-Without wrap: row 64 doesn't exist → crash or garbage pixels.
-
-```
-& (height - 1) = & 63 = 0b00111111   ← keeps only lower 6 bits
-
-tex_y = 64 & 63 = 0   ← tiles back to row 0
-tex_y = 65 & 63 = 1   ← row 1
-tex_y = 26 & 63 = 26  ← no change, already in range
-```
-
-The texture tiles seamlessly — when it reaches the bottom it starts again from the top.
+ 
+`tex_x=47` is fixed — same column of the texture all the way down.
+`tex_y` changes only when `(int)text_pos` increments — every 5 pixels here.
 
 ---
 
