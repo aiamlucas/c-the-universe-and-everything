@@ -1,3 +1,5 @@
+# Cub3d - Project Documentation
+
 ## After Parsing
 
 After parsing the `.cub` file, the map is stored as an array of strings — one string per row:
@@ -192,7 +194,7 @@ ray_dist_x = cell_fraction_x × delta_dist_x
 
 ---
 
-**DDA**
+## DDA
  
 ```
 Brute force:
@@ -210,7 +212,7 @@ P ──────┬────┬────► [WALL]
 
 ---
 
-## 8. draw_wall_column
+## draw_wall_column
  
 Four steps to draw one textured vertical strip:
 
@@ -248,7 +250,7 @@ perp_dist = 10.0 → line_height = 1080 / 10.0 = 108px   (wall far away     → 
 ---
 
 
-**2. `set_col_geometry`** where on screen (centered on horizon):
+## Set Column Geometry
  
 Example 1: medium distance wall (line_height = 540, WIN_HEIGHT = 1080):
 
@@ -1193,11 +1195,212 @@ line_height = 320   step=0.2   text_pos: 0→63.8      wraps    (just barely)
 line_height = 3600  step=0.017 text_pos: 0→63→0→...  wraps    (tiles many times)
 ```
 
+---
 
 
+# Rendering Pipeline — Buffer to Screen
 
+---
 
+## The flow
 
+```
+every frame (draw_loop):
+
+1. draw_3d()                    → write pixels into game->img.addr (buffer)
+2. move_player()                → update player position
+3. mlx_put_image_to_window()    → flush buffer to window (screen)
+```
+
+The buffer (`game->img.addr`) is an off-screen array of pixels.
+Nothing appears on screen until `mlx_put_image_to_window` is called.
+This avoids flickering. The entire frame is built in memory, then shown at once.
+
+---
+
+## FPS
+
+`mlx_loop_hook` calls `draw_loop` as fast as possible (not fixed at 60fps).
+The actual framerate depends on how long `draw_3d` takes to render.
+MLX does not cap or sync to a display refresh rate.
+
+---
+
+## Three functions, three roles
+
+```
+get_texture_pixel        READ  from texture buffer  (tex->addr)
+img_put_pixel            WRITE to render buffer     (game->img.addr)
+mlx_put_image_to_window  FLUSH buffer to window
+```
+
+---
+
+## img_put_pixel — write one color to render buffer
+ 
+```c
+dst = game->img.addr + (y * game->img.line_len + x * (game->img.bits_per_pixel / 8));
+*(unsigned int *)dst = color;
+```
+ 
+The buffer is NOT a 2D array. It's one flat array of bytes. We can think of it
+as a 2D grid (x, y) but navigate it with an offset formula:
+ 
+```
+line_length      = bytes per row = width × 4  (e.g. 1920 × 4 = 7680 bytes)
+bits_per_pixel   = 32 bits per pixel (one pixel = 4 bytes = RGBA)
+bits_per_pixel/8 = 32/8 = 4  ← convert bits to bytes
+ 
+offset = y × line_len   ← jump to the correct row
+       + x × 4          ← jump to the correct column
+```
+ 
+```
+game->img.addr  [0][1][2]...[2073599]   ← 1920×1080 = 2073600 pixels
+                                           not 2D —> one flat array
+ 
+to write color to (x=800, y=270):
+  offset = 270 × line_len + 800 × 4
+  dst    = game->img.addr + offset
+  *(unsigned int *)dst = color   ← write 4 bytes (one pixel)
+```
+ 
+`unsigned int` because color values are never negative — all 32 bits are magnitude.
+ 
+Guard: if `x` or `y` out of screen bounds → return without writing.
+ 
+---
+ 
+## get_texture_pixel — read one color from texture
+ 
+```c
+pixel = tex->addr + (tex_y * tex->line_length + tex_x * (tex->bits_per_pixel / 8));
+return (*(int *)pixel);
+```
+ 
+Same formula, same flat array layout -> just a smaller buffer (64×64):
+ 
+```
+line_length      = bytes per row = width × 4  (64 × 4 = 256 bytes)
+bits_per_pixel/8 = 32/8 = 4  ← bytes per pixel
+
+offset = tex_y × line_length + tex_x × 4
+       = tex_y × 256         + tex_x × 4
+```
+ 
+Example — reach `(tex_x=47, tex_y=2)`:
+ 
+```
+tex->addr  [0][1][2][3]...[255][256][257]...[511][512]...[699][700][701][702][703]...
+            ↑                  ↑                          ↑
+           row 0              row 1                  (47, 2) = offset 700
+ 
+line_length = 256 bytes per row (64px × 4 bytes)
+offset = 2 × 256 + 47 × 4 = 512 + 188 = 700
+pixel  = tex->addr + 700   → read 4 bytes → one color int
+```
+ 
+Guard: if `x` or `y` out of bounds → return `0` (black).
+ 
+---
+
+## mlx_put_image_to_window — flush to screen
+
+```c
+mlx_put_image_to_window(game->mlx, game->win, game->img.img, 0, 0);
+```
+
+Copies the entire render buffer to the window in one call.
+The `0, 0` is the top-left position of the image on the window.
+
+---
+
+## Side by side — texture buffer vs render buffer
+
+```
+TEXTURE BUFFER (tex->addr)          RENDER BUFFER (game->img.addr)
+────────────────────────            ────────────────────────────────
+64 × 64 = 4096 pixels               1920 × 1080 = 2073600 pixels
+READ ONLY                           WRITE ONLY (per frame)
+loaded once at startup              rebuilt every frame
+addr + (y × line_len + x × 4)      addr + (y × line_len + x × 4)
+```
+
+Same address formula — different sizes, different purpose.
+
+---
+
+## Full pixel journey — one pixel per frame
+
+```
+XPM file
+  ↓  mlx_xpm_file_to_image()
+tex->addr                           ← texture loaded in memory
+
+  ↓  get_texture_pixel(tex, tex_x, tex_y)
+color = 0x030D22                    ← one color read from texture
+
+  ↓  img_put_pixel(game, x, y, color)
+game->img.addr                      ← color written to render buffer
+
+  ↓  mlx_put_image_to_window()
+window pixel at (x, y)              ← render buffer flushed to screen
+```
+
+---
+
+## RGB packing — draw_floor_ceiling
+ 
+Colors from the `.cub` file are three separate numbers (R, G, B).
+MLX needs one 32-bit integer. Bit shifts pack them together:
+ 
+```
+color = (R << 16) | (G << 8) | B
+ 
+byte 3     byte 2     byte 1     byte 0
+[unused]   [  R  ]    [  G  ]    [  B  ]
+ 0x00       bits       bits       bits
+           23-16       15-8       7-0
+```
+ 
+**Why shift?**
+ 
+Each channel is 8 bits (0-255). To place R in byte 2, shift it left 16 positions.
+To place G in byte 1, shift left 8. B stays in byte 0 — no shift needed.
+ 
+**What is `0xA7`?**
+ 
+Each hex digit = 4 bits. Two hex digits = 8 bits = 1 byte:
+ 
+```
+0xA7:
+  A = 1010  (decimal 10)
+  7 = 0111  (decimal 7)
+  
+  0xA7 = 1010 0111 = 167 in decimal
+```
+ 
+So `0xA7` is NOT 12 bits — it's 8 bits (2 hex digits × 4 bits each).
+ 
+**Full example — Teal RGB(29, 233, 182):**
+ 
+```
+R = 29  = 0x1D = 0001 1101
+G = 233 = 0xE9 = 1110 1001
+B = 182 = 0xB6 = 1011 0110
+ 
+29  << 16 = 0x1D0000 = 0001 1101 0000 0000 0000 0000
+233 <<  8 = 0x00E900 = 0000 0000 1110 1001 0000 0000
+182       = 0x0000B6 = 0000 0000 0000 0000 1011 0110
+                       ──────────────────────────────
+OR all:   = 0x1DE9B6 = 0001 1101 1110 1001 1011 0110
+                       ↑↑↑↑↑↑↑↑ ↑↑↑↑↑↑↑↑ ↑↑↑↑↑↑↑↑
+                         R=29      G=233     B=182
+```
+ 
+`|` (OR) combines them — each channel sits in its own 8-bit slot so they never overlap.
+ 
+Same address formula — different sizes, different purpose.
 
 
 
