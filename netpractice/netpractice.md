@@ -586,7 +586,7 @@ Same sequence (128, 192, 224, 240, 248, 252, 254) — just shifted one octet lef
 
 ---
  
-## 17. Appendix: Switch & Router in ASCII
+## 17. Appendix: Switch & Router
  
 One line to rule them all:
 **switch = one network, many machines**
@@ -634,12 +634,620 @@ One line to rule them all:
         each interface obeys the rules of the subnet it stands in
 ```
 
+---
 
+
+# Notes
+
+---
+
+## 1. TCP/IP — what the name means
+
+**TCP/IP** is the protocol family the Internet runs on.
+
+- **IP — Internet Protocol.** Addressing and delivery: gets a packet from one
+  machine to another across networks, using IP addresses. 
+- **TCP — Transmission Control Protocol.** Rides on top of IP and adds
+  reliability: a connection (handshake), ordering, retransmission of lost
+  pieces, and **ports** to tell apps apart. Its lightweight sibling **UDP**
+  skips all guarantees for speed.
+
+## 2. The layers (TCP/IP model — 4 layers)
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ 4 · APPLICATION   what the data means      HTTP, DNS, SSH  │
+├────────────────────────────────────────────────────────────┤
+│ 3 · TRANSPORT     app-to-app, PORTS,       TCP, UDP        │
+│                   reliability                              │
+├────────────────────────────────────────────────────────────┤
+│ 2 · INTERNET      machine-to-machine       IP, ICMP        │
+│                   across networks:                         │
+│                   IP ADDRESSES, ROUTING    → ROUTERS here  │
+├────────────────────────────────────────────────────────────┤
+│ 1 · LINK          neighbor-to-neighbor     Ethernet, ARP   │
+│                   on one wire: MAC addrs   → SWITCHES here │
+└────────────────────────────────────────────────────────────┘
+```
+
+(The OSI model spreads the same idea over 7 layers; in OSI numbering, routers
+are "layer 3" and switches "layer 2" — that's the numbering people usually
+quote, including NetPractice docs.)
+
+
+## 3. LAN and the two-part IP address
+
+**LAN — Local Area Network:** one local network (your home, one office floor):
+all devices can reach each other directly, without a router. A router is the
+door *out* of the LAN.
+
+Every IPv4 address (32 bits, 4 octets) splits into two parts:
+
+```
+192.168.1        .3
+─────────────    ──
+network portion  host portion
+"which street"   "which house"
+```
+
+Where the split falls is decided by the **subnet mask** — it is not fixed.
+
+## 4. Reserved, unusable addresses in every network
+
+Two addresses of every network can never be given to a machine:
+
+```
+Example network 192.168.1.0/24:
+
+192.168.1.0    → NETWORK address   (first IP — names the network itself)
+192.168.1.255  → BROADCAST address (last IP — "everyone in this network")
+Usable range   → 192.168.1.1 … 192.168.1.254   (254 hosts)
+```
+
+## 5. What is a subnet? What is CIDR?
+
+A **subnet** is one contiguous block of addresses that forms a single network:
+everything inside it can talk directly. A subnet is identified by its
+**network address** (the first IP of its range) plus its **mask**, usually
+written together in **CIDR notation**:
+
+```
+SUBNET:  192.168.1.0 /24
+         ───────────  ──
+         network      "the first 24 of the 32 bits
+         address       are the network portion"
+```
+
+**CIDR** (Classless Inter-Domain Routing) is just the compact way to write the
+mask: `/N` = "N leading 1-bits." It replaced the old class A/B/C system where
+the address itself implied the split; today the /N decides everything.
+
+`/24` written out in decimal:
+
+```
+/24  =  11111111.11111111.11111111.00000000
+     =  255     .255     .255     .0
+        ─────── network ────────   host
+```
+
+**The mask tells you two things at once:** where the network portion ends, and
+therefore how many hosts fit: hosts = 2^(32−N) − 2 (minus network+broadcast).
+
+```
+/24 → 2^8 − 2 = 254 hosts     /25 → 2^7 − 2 = 126 hosts
+/26 → 2^6 − 2 =  62 hosts     /30 → 2^2 − 2 =   2 hosts
+```
+
+## 6. Reading a mask in binary (bit values)
+
+Each bit position in an octet has a value; a mask octet is a sum of them
+**taken from the left**:
+
+```
+position:   2^7  2^6  2^5  2^4  2^3  2^2  2^1  2^0
+value:      128   64   32   16    8    4    2    1
+
+255 = 11111111 = 128+64+32+16+8+4+2+1
+240 = 11110000 = 128+64+32+16          (4 one-bits)
+128 = 10000000 = 128                   (1 one-bit)
+```
+
+The only 9 legal mask octets (1s must be contiguous from the left) — with the
+CIDR each one produces, depending on **which octet of the mask** it sits in:
+
+| Binary   | Decimal | Bits of 1 | as 4th octet | as 3rd octet | as 2nd octet |
+|----------|---------|-----------|--------------|--------------|--------------|
+| 00000000 | 0       | 0         | /24          | /16          | /8           |
+| 10000000 | 128     | 1         | /25          | /17          | /9           |
+| 11000000 | 192     | 2         | /26          | /18          | /10          |
+| 11100000 | 224     | 3         | /27          | /19          | /11          |
+| 11110000 | 240     | 4         | /28          | /20          | /12          |
+| 11111000 | 248     | 5         | /29          | /21          | /13          |
+| 11111100 | 252     | 6         | /30          | /22          | /14          |
+| 11111110 | 254     | 7         | /31          | /23          | /15          |
+| 11111111 | 255     | 8         | /32          | /24          | /16          |
+
+Reading rule: **CIDR = (full 255-octets before it × 8) + this octet's 1-bits.**
+So 224 as the 4th octet of `255.255.255.224` = 24+3 = /27, but the same 224 in
+`255.255.224.0` = 16+3 = /19. The pattern is identical, just shifted.
+(Spot the fossil: the private range 172.16.0.0/**12** is the "240 as 2nd
+octet" row.)
+
+Anything else (e.g. 32 = `00100000`) is an **invalid mask** — a 1 after a 0.
+
+## 7. Finding network & broadcast from any mask (worked example)
+
+Given: some IP in the subnet, mask `255.255.255.128` (= /25). How do I get the
+first and last address?
+
+**The fast way — the block-size trick (no binary needed):**
+
+```
+① block  = 256 − mask octet          256 − 128 = 128
+② network   = IP − (IP % block)      e.g. 42.77 → 77−(77%128) = 0 → .0
+③ broadcast = network + block − 1    0 + 128 − 1 = 127
+④ hosts     = everything strictly between
+```
+
+Result for `192.168.42.x /25`, lower block:
+
+```
+network address:    192.168.42.0     (first IP)
+usable hosts:       192.168.42.1 … 192.168.42.126
+broadcast address:  192.168.42.127   (last IP)
+subnet mask:        255.255.255.128  (= /25)
+```
+
+**Why it works (the binary view, once):** the mask keeps the top bit of the
+last octet as network and frees the bottom 7 as host bits. Network = host bits
+all 0 (.0 or .128); broadcast = host bits all 1 (.127 or .255).
+
+## 8. Splitting a network: one /24 → two /25
+
+Adding one bit to the mask cuts the network in half. `255.255.255.128`
+(= /25) splits the 256 addresses of a /24 into **two subnets of 128**:
+
+```
+                 ONE network: 192.168.1.0/24  (256 addresses)
+ ┌──────────────────────────────────────────────────────────────────┐
+ │  .0                                                        .255  │
+ └──────────────────────────────────────────────────────────────────┘
+                                   │
+                     mask bit 128 splits it in two
+                                   ▼
+ ┌───────────────────────────────┬──────────────────────────────────┐
+ │   SUBNET A: 192.168.1.0/25    │    SUBNET B: 192.168.1.128/25    │
+ │                               │                                  │
+ │  .0    network address        │   .128   network address         │
+ │  .1 ┐                         │   .129 ┐                         │
+ │  …  ├ 126 usable hosts        │   …    ├ 126 usable hosts        │
+ │ .126┘                         │   .254 ┘                         │
+ │ .127   broadcast address      │   .255   broadcast address       │
+ └───────────────────────────────┴──────────────────────────────────┘
+     hosts here can talk to           hosts here can talk to
+     each other directly …            each other directly …
+
+          … but A ↔ B needs a ROUTER: they are now
+            two different networks, even though the
+            wire and the numbers look almost the same!
+```
+
+Note the surprise addresses this creates: `.127` and `.255` are broadcasts,
+and `.128` — a perfectly innocent-looking number — is now a **network
+address** and unusable for a host.
+
+Keep borrowing bits and each step doubles the subnets and halves their size:
+
+```
+/24 → 1 subnet  × 254 hosts          /27 → 8 subnets  × 30 hosts
+/25 → 2 subnets × 126 hosts          /28 → 16 subnets × 14 hosts
+/26 → 4 subnets ×  62 hosts          /30 → 64 subnets ×  2 hosts
+```
+
+```
+/26 cuts the same /24 into four:
+ .0–.63        .64–.127      .128–.191     .192–.255
+ ┌──────────┬──────────────┬─────────────┬────────────┐
+ │ net .0   │  net .64     │  net .128   │  net .192  │
+ │ hosts    │  hosts       │  hosts      │  hosts     │
+ │ .1–.62   │  .65–.126    │  .129–.190  │  .193–.254 │
+ │ bc .63   │  bc .127     │  bc .191    │  bc .255   │
+ └──────────┴──────────────┴─────────────┴────────────┘
+```
+
+## 9. Subnetting, step by step (worked example)
+
+Task from the video: subnet `192.168.1.0` with mask **255.255.255.192**.
+
+```
+STEP 1 — convert the mask to binary
+        255.255.255.192
+      = 11111111.11111111.11111111.11000000
+                                    ↑↑
+                          2 bits borrowed from the host part
+
+STEP 2 — find the CIDR notation
+        count the 1s: 8+8+8+2 = 26  →  /26
+        (borrowed bits also tell you the subnet count: 2 bits → 2² = 4 networks)
+
+STEP 3 — find the increment (value of the LAST network bit)
+        11000000
+         └─ last 1 sits on the 64-column → increment (block size) = 64
+        (same as 256 − 192 = 64 — two roads, one number)
+
+STEP 4 — create the networks: start at .0, jump by the increment,
+        and mark first (network) & last (broadcast) of each — always reserved
+```
+
+Result — the /24 space cut into 4 subnets of 64:
+
+```
+       NETWORK 1        NETWORK 2        NETWORK 3        NETWORK 4
+   ┌──────────────┬───────────────┬────────────────┬────────────────┐
+   │ .0    net    │ .64    net    │ .128    net    │ .192    net    │
+   │ .1  ┐        │ .65  ┐        │ .129  ┐        │ .193  ┐        │
+   │ …   ├ hosts  │ …    ├ hosts  │ …     ├ hosts  │ …     ├ hosts  │
+   │ .62 ┘  (62)  │ .126 ┘  (62)  │ .190  ┘  (62)  │ .254  ┘  (62)  │
+   │ .63   bcast  │ .127   bcast  │ .191    bcast  │ .255    bcast  │
+   └──────────────┴───────────────┴────────────────┴────────────────┘
+    0             64              128              192             256
+```
+
+Devices in different boxes need a **router** to communicate — same wire,
+same "192.168.1", but four separate networks now.
+
+## 10. Switch
+
+A **physical device inside a LAN**: connects multiple devices and lets them
+communicate simultaneously (it learns which MAC is on which port and forwards
+frames only there — unlike a hub, which blindly repeats to everyone).
+
+```
+  PC1 ──┐
+  PC2 ──┼──[SWITCH]──   ONE network. The switch has no IP,
+  PC3 ──┘               no configuration — it's invisible plumbing.
+```
+
+Rule that matters for NetPractice: **everything on a switch = same subnet.**
+
+## 11. Router
+
+Sits **between networks** — classically between the LAN and the external
+network (LAN ↔ WAN, the wider internet), but equally between two internal
+LANs. It uses its **routing table** to determine the best path and forwards
+packets between networks based on IP addresses.
+
+```
+   LAN 192.168.1.0/24                          WAN / other networks
+  PC ──[switch]── (iface .1) [ROUTER] (iface X) ────────── internet
+                      ↑
+        one interface per network it touches,
+        each with its own IP in that network
+```
+
+## 12. Gateway
+
+- **Router** = the device/function: moves packets **between** networks,
+  choosing paths via its routing table.
+- **Gateway** = the *address role* that device plays **for you**: the entry
+  and exit door of *your* network. When your PC needs to reach anything
+  outside its own subnet, it hands the packet to its **default gateway** —
+  which is simply **the IP of the router's interface inside your own subnet**
+  (e.g. 192.168.1.1).
+
+So "a gateway has a single IP address" from my notes really means: *from a
+host's point of view*, the gateway is one IP — the local door. The router
+behind that door has several IPs, one per network it touches. (The historical
+meaning — a translator between different protocols — survives in terms like
+"application gateway", but for IP networking, gateway ≈ local router
+interface.)
+
+```
+  PC 192.168.1.10/24
+  route: default → 192.168.1.1      ← "the door out" = gateway
+                        │
+              [ROUTER] iface A: 192.168.1.1   (in MY subnet ✓)
+                       iface B: 82.64.1.1     (its other life, not my concern)
+```
+
+NetPractice enforces exactly this: the gateway you enter **must be inside the
+host's own subnet**, and must be the directly connected router interface.
+
+
+## 14. Routing table
+
+A list of rules every host and router keeps: **destination → next hop.**
+
+```
+destination           next hop
+192.168.42.0/24   →   10.1.1.2      ← "to reach THAT network, hand to THIS neighbor"
+default (0.0.0.0/0) → 192.168.1.1   ← matches everything else = the gateway
+```
+
+How it's used: take the packet's destination IP, find the **most specific**
+matching entry (longest prefix wins; `default` matches anything), send to that
+next hop — which must be directly reachable, i.e. inside one of my own
+subnets. Two NetPractice essentials: `default` = `0.0.0.0/0`, and paths need
+routes in **both directions** (forward *and* return) or replies die on the
+way back.
+
+## 15. ARP — Address Resolution Protocol
+
+IP finds the route, but on the local wire frames travel by **MAC address**.
+ARP is the bridge between the two:
+
+```
+PC-A wants to send to 192.168.1.20 (same subnet):
+  A (broadcast): "Who has 192.168.1.20? Tell 192.168.1.10"
+  B (reply):     "192.168.1.20 is me — MAC aa:bb:cc:dd:ee:ff"
+  → A caches it and sends frames straight to that MAC from now on.
+```
+
+If the destination is *outside* the subnet, A instead ARPs for its
+**gateway's** MAC and sends the packet there. (Not simulated in NetPractice —
+but it's what "directly connected" means physically.)
+
+## 16. NAT — Network Address Translation
+
+How a whole private LAN shares **one public IP**. The router rewrites
+addresses as traffic passes through:
+
+```
+  PC 192.168.1.10 ──┐
+  PC 192.168.1.11 ──┼──[ROUTER/NAT]────── internet
+  PC 192.168.1.12 ──┘   public: 82.64.7.9
+
+  outgoing: src 192.168.1.10  →  rewritten to  src 82.64.7.9 (+port)
+  incoming: the router remembers who asked and translates back
+```
+
+This is *why* private ranges (10/8, 172.16/12, 192.168/16) can be reused in
+every home on Earth — they never appear on the Internet; NAT masks them.
+And it's why NetPractice rejects private IPs facing the Internet cloud:
+there's no NAT in the simulation, so the address must be genuinely public.
+
+## 17. DHCP & DNS (the two helpers)
+
+- **DHCP — Dynamic Host Configuration Protocol.** Hands out network config
+  automatically when a device joins: an IP address, the mask, the gateway,
+  and the DNS server. In NetPractice *you* are the DHCP — filling those exact
+  fields by hand is the whole exercise.
+- **DNS — Domain Name System.** The phone book: translates names to IPs
+  (`google.com → 142.250.74.78`). Everything after that lookup — masks,
+  gateways, routing — is the same machinery as in these notes; DNS only
+  supplies the destination number.
 
 
 ---
 
-`echo "ibase=2; 101101" | bc`
-`echo "obase=2; 45" | bc`
+# Supplement — bc, Formulas & Mini-Visuals
+
+---
+
+## 1. bc basics
+
+`bc` reads an expression from stdin and prints the result:
+
+```bash
+echo "2+3" | bc          # 5
+echo "256-224" | bc      # 32
+```
+
+**Complete worked example.** The problem, as a level would give it:
+
+```
+Locked:  interface B1 = 192.168.87.222   mask 255.255.255.224
+Free:    interface A1 = ???              (must reach B directly)
+
+The first three octets are under 255s → A must copy 192.168.87.
+The puzzle is the LAST octet only — that's where the mask octet
+is 224 and B's octet is 222. Those two numbers are all bc needs:
+```
+
+```bash
+~ ❯ bc          # ← you: start bc (it waits silently for input)
+256-224         # ← you: 256 − mask octet(224) … "what's the block size?"
+32              # ← bc:  block = 32 → subnets are 32 wide (.0, .32, .64 …)
+222 % 32        # ← you: B's octet(222) mod block … "how far past the last checkpoint?"
+30              # ← bc:  222 is 30 addresses past the start of its block
+222 - 30        # ← you: step back those 30 to land on the block's start
+192             # ← bc:  network address = .192
+192+32-1        # ← you: block start + block − 1 … "where does the block end?"
+223             # ← bc:  broadcast address = .223
+quit            # ← you: leave bc
+```
+
+**Read off the answer:** B's subnet is `192.168.87.192/27` —
+network `.192` ✗, hosts `.193`–`.222` ✓, broadcast `.223` ✗.
+A1 = any of `.193`–`.221` (`.222` is B's). Done.
+
+## 2. Decimal → binary  (`obase` = output base)
+
+```bash
+echo "obase=2; 224" | bc         # 11100000
+echo "obase=2; 19"  | bc         # 10011   ← bc doesn't pad; read it as 00010011
+```
+
+Main use: checking whether a mask octet is valid (contiguous 1s from the left).
+
+## 3. Binary → decimal  (`ibase` = input base)
+
+```bash
+echo "ibase=2; 11100000" | bc    # 224
+```
+
+## 4. Modulo & powers
+
+```bash
+echo "222 % 32" | bc     # 30   ← remainder: "how far past the last checkpoint?"
+echo "2^5" | bc          # 32   ← powers, e.g. hosts per mask: 2^(32−N) − 2
+```
+
+**Do you *need* modulo?** It's one calculation with two options:
+finding the network address = "largest multiple of the block ≤ my IP octet."
+With small blocks you just *see* it (block 64, IP 100 → obviously 64). Modulo
+is the fallback for when the numbers aren't obvious (block 32, IP 222 →
+`222−(222%32)` = 192 beats listing 0,32,64,… under time pressure). Same
+answer either way — use whichever is faster for you.
+
+One trap worth keeping: if `IP % block` = **0**, the IP sits exactly ON a
+checkpoint → it IS the network address → can't be a host.
+
+---
+
+## 5. The Four Formulas
+
+Everything in NetPractice reduces to these:
+
+```
+① block     = 256 − mask_octet              ← size of each subnet
+② network   = IP − (IP % block)             ← step back to the checkpoint
+③ broadcast = network + block − 1           ← last address of the block
+④ hosts     = network+1 … broadcast−1       ← minus duplicates
+```
+
+Plus two side formulas:
+
+```
+addresses in /N   = 2^(32−N)
+usable hosts /N   = 2^(32−N) − 2            (network & broadcast removed)
+mask_octet        = 256 − block             (① reversed)
+```
+
+### As one bc session
+
+```bash
+~ ❯ bc
+256-224          # ① block
+32
+222-(222%32)     # ② network
+192
+192+32-1         # ③ broadcast
+223
+                 # ④ hosts = 193…222 (read it off, minus taken IPs)
+```
+
+---
+
+## 6. Mini-visuals
+
+### The checkpoint road (what modulo computes)
+
+Multiples of the block are checkpoints; checkpoints ARE the network addresses.
+`IP % block` = "how far past the last checkpoint am I?" Subtract it → you're
+standing on your network address.
+
+```
+block = 32:
+   0     32    64    96    128   160   192   224   256
+   ├─────┼─────┼─────┼─────┼─────┼─────┼──█──┼─────┤
+                                          ↑
+                                    IP = 222
+   222 % 32 = 30  (walked 30 past checkpoint 192)
+   222 − 30 = 192 = network address
+```
+
+### The full landscape (same case, all subnets at once)
+
+Mask .224 / block 32 chops the octet into 8 independent networks. Every box:
+first address = network, last = broadcast, different boxes need a router.
+
+```
+┌─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┐
+│  .0–.31 │ .32–.63 │ .64–.95 │ .96–.127│.128–.159│.160–.191│.192–.223│.224–.255│
+│         │         │         │         │         │         │   ███   │         │
+└─────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┘
+  net .0    net .32   net .64   net .96   net .128  net .160  net .192  net .224
+  bc  .31   bc  .63   bc  .95   bc  .127  bc  .159  bc  .191  bc  .223  bc  .255
+                                          222 lives here ──────────┘
+
+zoom:         192.168.87.192/27
+   ┌──────┬────────────────────────────────────┬──────┬─────┐
+   │ .192 │ .193  .194   ……   .220  .221       │ .222 │ .223│
+   │ NET  │      free hosts (29 choices)       │taken │BCAST│
+   └──────┴────────────────────────────────────┴──────┴─────┘
+      ✗                  ✓                        ✗      ✗
+```
+
+### Anatomy of every block (any mask, any block — always the same)
+
+```
+        ┌──────────────────────────────────────────────┐
+        │ .192       .193 …………… .222           .223    │
+        │ NETWORK         hosts               BROADCAST│
+        │ (first of block)              (last of block)│
+        └──────────────────────────────────────────────┘
+          forbidden      usable                forbidden
+```
+
+### The mask as a stencil (what AND computes)
+
+Where the mask has 1 → keep the IP's bit. Where 0 → erase.
+
+```
+IP:    222 = 1 1 0 1 1 1 1 0
+mask:  224 = 1 1 1 0 0 0 0 0
+             │ │ │ ┌─erased─┐
+AND:         1 1 0 0 0 0 0 0  = 192  ← same answer as the modulo trick
+```
+
+`IP − (IP % block)` and `IP & mask` are the same operation in two costumes.
+bc has no `&`, which is why we use the modulo costume.
+
+### Splitting: each borrowed bit doubles the subnets, halves the size
+
+```
+/24  ├───────────────────────── 254 hosts ──────────────────────────┤
+/25  ├───────── 126 hosts ──────────┤├───────── 126 hosts ──────────┤
+/26  ├── 62 hosts ──┤├── 62 hosts ──┤├── 62 hosts ──┤├── 62 hosts ──┤
+/27  ├──30──┤├──30──┤├──30──┤├──30──┤├──30──┤├──30──┤├──30──┤├──30──┤
+     0      32      64      96      128     160     192     224    256
+```
+
+Every cut lands exactly on the cut above it: the /27 boundaries at .64 and
+.128 are also /26 and /25 boundaries. That's why subnets of different sizes
+can coexist without overlapping — smaller blocks nest perfectly inside
+bigger ones.
+
+---
+
+## 7. Bit values & the master row (memorize)
+
+```
+bit value:   128   64   32   16    8    4    2    1
+CIDR (4th):  /25  /26  /27  /28  /29  /30  /31  /32
+mask octet: .128 .192 .224 .240 .248 .252 .254 .255
+block:       128   64   32   16    8    4    2    1
+```
+
+Mask octet = running sum from the left; block = the column's own bit value;
+mask + block = 256 in every column. Legal mask octets are ONLY these (plus 0).
+`255.255.255.32`? 32 isn't in the row → invalid mask, no math needed.
+
+---
+
+## 8. Speed drill routine (defense prep)
+
+For any (IP, mask) produce network / broadcast / host-range in <15 s:
+
+```
+say the mask octet → block (row above) → nearest multiple ≤ IP octet
+→ +block−1 → done
+```
+
+Examples to drill (cover the right side, answer, check):
+
+| IP.last, mask | block | network | broadcast | hosts    |
+|---------------|-------|---------|-----------|----------|
+| 147, .240     | 16    | 144     | 159       | 145–158  |
+| 77,  .128     | 128   | 0       | 127       | 1–126    |
+| 222, .224     | 32    | 192     | 223       | 193–222  |
+| 100, .192     | 64    | 64      | 127       | 65–126   |
+| 130, .240     | 16    | 128     | 143       | 129–142  |
+| 5,   .252     | 4     | 4       | 7         | 5–6      |
+| 64,  .192     | 64    | 64 (!)  | 127       | 65–126   |
+
+The (!) row is the classic trap: an IP sitting exactly ON a checkpoint
+(`IP % block = 0`) IS the network address — .64 itself can't be a host.
 
 
