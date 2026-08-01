@@ -59,17 +59,6 @@ CIDR   octet 1   octet 2   octet 3   octet 4     dotted mask           power of 
                           ─────────────────────────────────────  ← octet 3 now ALL host
 ...
 ```
-
-Three facts to pull from it instantly:
-
-- **power of 2 = 32 − CIDR** (the number of host bits still free)
-- **block size** (see §3) = the value of the *last* 1-bit turned on = same
-  number as "power of 2" for that row's own octet
-- **addresses = 2^(host bits)**; **usable hosts = addresses − 2**
-
-The pattern also runs one octet further left for /9–/15 (2nd octet) — same
-9 values (0,128,192,224,240,248,252,254,255), just shifted.
-
 ---
 
 ## 3. Core mental models
@@ -157,44 +146,9 @@ way.
 ④ hosts     = network+1 … broadcast−1   ← minus any duplicates
 ```
 
-One `bc` session, solving a real example (locked: `192.168.87.222 /27`):
-
-```bash
-~ ❯ bc
-256-224          # ① block
-32
-222-(222%32)     # ② network
-192
-192+32-1         # ③ broadcast
-223
-                 # ④ hosts = 193…222, minus .222 itself (taken)
-```
-
-Chained in one line for speed:
-```bash
-echo "256-224; 222-(222%32); 192+32-1" | bc
-# 32
-# 192
-# 223
-```
-
-`bc` reference, quickly:
-```bash
-echo "obase=2; 224" | bc     # → binary (check mask validity)
-echo "ibase=2; 11100000" | bc # → decimal (obase FIRST if using both)
-echo "222 % 32" | bc          # modulo
-echo "2^5" | bc                # powers
-```
-
-Do you *need* modulo? No — it's one of two ways to answer "largest multiple
-of the block ≤ my IP octet." Big blocks (128, 64) you can usually just see;
-modulo is the fallback when eyeballing gets slow. **Trap:** if
-`IP % block = 0`, the IP sits exactly on a checkpoint — it IS the network
-address, not a usable host.
-
 ---
 
-## 6. Devices — switch vs. router
+## 5. Devices — switch vs. router
 
 ```
 SWITCH                              ROUTER
@@ -220,7 +174,7 @@ connected" means physically.
 
 ---
 
-## 7. Gateway & routing tables
+## 6. Gateway & routing tables
 
 A **route** is one rule: `destination → next hop`.
 
@@ -245,7 +199,7 @@ levels: routes are needed in **both directions** (forward AND return), and
 
 ---
 
-## 8. Private ranges, NAT, DHCP/DNS, loopback — quick table
+## 7. Private ranges, NAT, DHCP/DNS, loopback — quick table
 
 | Concept | What it is | Why NetPractice cares |
 |---|---|---|
@@ -265,7 +219,7 @@ C: 192.168.0.0/16   ████████────────────
 
 ---
 
-## 9. VLSM — different subnets, different sizes
+## 8. VLSM — different subnets, different sizes
 
 Real designs (and NetPractice level 7) rarely want equal-sized subnets. VLSM
 = carve the **biggest** required piece first, then keep cutting the
@@ -282,31 +236,3 @@ remainder into progressively smaller pieces:
 ```
 
 ---
-
-## 10. Cheat sheet — everything on one page
-
-```
-① Reserved:      first = network, last = broadcast — never assignable
-② Same network?  IP1 & mask == IP2 & mask  (both must agree)
-③ Gateway:       router's IP INSIDE your own subnet — never a far interface
-④ Router rule:   each interface = its own subnet, none may overlap
-⑤ Route:         default (0.0.0.0/0) → gateway; both directions must exist
-⑥ Loopback:      never 127.x.x.x on an interface
-⑦ Internet-facing: never private (10/8, 172.16/12, 192.168/16) or loopback
-⑧ Invalid mask:  octet not in {0,128,192,224,240,248,252,254,255} → reject
-⑨ Bits→networks: N bits borrowed → 2^N networks; round target UP to next 2^N
-⑩ Export:        "Get my config" after every level — 10 files at repo root
-```
-
-### Log messages → fix
-
-| Log (paraphrased) | Fix |
-|---|---|
-| destination unreachable | check mask/subnet match, or add a route |
-| invalid netmask | octet not in the legal 9 — replace it |
-| gateway unreachable | point to the router iface inside YOUR subnet |
-| is a network/broadcast address | pick an address strictly inside the block |
-| duplicate IP | change one of the two |
-| overlaps with... | re-plan ranges using the block-size table |
-| private address on the Internet | use a genuinely public address |
-| packet never comes back | add the return route on the way back |
