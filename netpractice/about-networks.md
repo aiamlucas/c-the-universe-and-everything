@@ -1,8 +1,5 @@
 # IP Address Types — Public, Private, Reserved, Multicast & Anycast
 
-A reference companion to the NetPractice study guides — this one's about the
-*kinds* of addresses that exist, not the subnetting math.
-
 ---
 
 ## Table of Contents
@@ -192,19 +189,3 @@ nearest), and no need for the client to know or care which physical
 machine actually replied.
 
 ---
-
-## 7. Quick Reference Table
-
-```
-Public                → globally unique, routable on the real Internet
-Private (10/8)        → large orgs, 16.7M addresses
-Private (172.16/12)   → medium networks, 1M addresses
-Private (192.168/16)  → home/small office, 65,536 addresses
-Loopback (127/8)      → "myself," never leaves the device
-Link-local (169.254)  → self-assigned when DHCP fails — a red flag
-CGNAT (100.64/10)     → ISP-internal NAT space
-Multicast (224/4)     → one-to-many, only group members receive
-Reserved (240/4)      → unused "Class E," future reserve
-Broadcast (255.255.255.255) → everyone on the local subnet, no further
-Anycast               → not a range — same address, nearest server answers
-```
