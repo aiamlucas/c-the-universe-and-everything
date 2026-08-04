@@ -6,6 +6,9 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 <!-- INDEX-START -->
 
+### Born-To-Be-Root
+
+
 ### C
 
 - [Arrays](c/arrays/arrays.md)
@@ -16,6 +19,11 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 - [Libft Exploration](c/libft/libft-exploration.md)
 - [Pointers](c/pointers/pointers.md)
 - [Structs](c/structs/structs.md)
+
+### Cub3d
+
+- [To_follow](cub3d/to_follow.md)
+- [Project_guide](cub3d/project_guide.md)
 
 ### Get-Next-Line
 
@@ -31,11 +39,11 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 ### Minishell
 
-- [Shell Basics](minishell/shell-basics.md)
-- [Explaining Shell](minishell/explaining-shell.md)
-- [Functions Usage Map](minishell/functions-usage-map.md)
-- [Allowed Functions Explained](minishell/allowed-functions-explained.md)
-- [Project Documentation](minishell/project-documentation.md)
+- [Docker Setup For Minishell Testing](minishell/docker-setup-for-minishell-testing.md)
+- [Execution_theory](minishell/project-documentation/execution_theory.md)
+- [Pipeline_theory](minishell/project-documentation/pipeline_theory.md)
+- [Minishell Documentation](minishell/project-documentation/minishell-documentation.md)
+- [Testing Minishell](minishell/testing-minishell.md)
 
 ### Minitalk
 
@@ -45,14 +53,25 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 ### Neovim
 
 - [Nvim Keybindings](neovim/nvim-keybindings.md)
+- [Neovim_subset_keybindings](neovim/neovim_subset_keybindings.md)
+
+### Netpractice
+
+- [Netpractice](netpractice/netpractice.md)
+- [About Networks](netpractice/about-networks.md)
 
 ### Philosophers
 
 - [Philosophers](philosophers/philosophers.md)
+- [Testing Philosophers](philosophers/testing-philosophers.md)
 
 ### Shell
 
 - [Markdown Index Generator](shell/markdown-index-generator/markdown-index-generator.md)
+
+### Signals
+
+- [Signals](signals/signals.md)
 
 ### Sysadmins
 
