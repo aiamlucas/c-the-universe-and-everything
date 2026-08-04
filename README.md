@@ -63,7 +63,6 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 ### Philosophers
 
 - [Philosophers](philosophers/philosophers.md)
-- [Testing Philosophers](philosophers/testing-philosophers.md)
 
 ### Shell
 
@@ -81,6 +80,7 @@ A collaborative collection of notes on C, shell and other low-level orbit object
 
 - [Get Next Line Tests](testing-projects/get-next-line-tests.md)
 - [Get Next Line Bonus Tests](testing-projects/get-next-line-bonus-tests.md)
+- [Testing Philosophers](testing-projects/testing-philosophers.md)
 
 <!-- INDEX-END -->
 
