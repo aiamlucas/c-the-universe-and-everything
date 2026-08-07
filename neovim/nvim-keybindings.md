@@ -1,4 +1,4 @@
-# Neovim Keybindings Cheat Sheet
+# My Neovim Keybindings Cheat Sheet
 
 ---
 
